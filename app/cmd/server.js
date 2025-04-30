@@ -16,7 +16,7 @@ app.use(express.json());
 // Handlebars --------------------------------
 app.engine('hbs', handlebars.engine({ extname: '.hbs' }));
 app.set('view engine', 'hbs');
-app.set('views', __dirname + '/app/pages');
+app.set('views', __dirname + '/pages');
 
 // App Middleware --------------------------------
 app.use(handleResponses)

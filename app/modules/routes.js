@@ -4,7 +4,7 @@ import viewsRouter from "./views.routes.js";
 
 const router = Router()
 
-router.get("/", viewsRouter);
+router.use("/", viewsRouter);
 
 // http://localhost:8080/
 router.use('/webhook/', whatsappRouter)
