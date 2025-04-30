@@ -20,7 +20,7 @@ app.set('views', __dirname + '/app/pages');
 
 // App Middleware --------------------------------
 app.use(handleResponses)
-handlebars
+
 // App Routes --------------------------------
 app.use('/', appRouter);
 
