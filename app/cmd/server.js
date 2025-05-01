@@ -12,6 +12,7 @@ const app = express();
 const port = configEnv.PORT || 8080;
 app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
+app.use(express.static(__dirname + '/public'));
 
 // Handlebars --------------------------------
 app.engine('hbs', handlebars.engine({ extname: '.hbs' }));
