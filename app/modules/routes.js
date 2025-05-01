@@ -1,14 +1,10 @@
 import { Router } from "express";
 import whatsappRouter from "./whatsapp/api/routes.js"
+import viewsRouter from "./views.routes.js";
 
 const router = Router()
 
-router.get("/", (req, res) => {
-  res.send(`
-    <h3>Server online</h3>
-    <pre>Nothing to see here.
-Checkout README.md to start.</pre>`);
-});
+router.use("/", viewsRouter);
 
 // http://localhost:8080/
 router.use('/webhook/', whatsappRouter)

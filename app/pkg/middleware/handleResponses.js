@@ -1,6 +1,6 @@
 const handleResponses = (req, res, next) => {
   // RESPONSES
-  const responses = (statusCode, isError = false , message = "", data = {}) => res.status(statusCode).json({ isError, message, data});
+  const responses = (statusCode, isError = false, message = "", data = {}) => res.status(statusCode).json({ isError, message, data });
 
   // SIMPLES
   res.sendSuccess = (data, message = "Success") => responses(200, false, message, data);
@@ -15,7 +15,10 @@ const handleResponses = (req, res, next) => {
   // MULTIPLES
   res.sendSuccessOrNotFound = (variable, title = "Item") => (variable) ? res.sendSuccess(variable) : res.sendNotFound(`${title} not found`);
   res.sendCatchError = (error, message = "Internal Server Error") => res.sendServerError(message, error.toString());
-  
+
+  // RENDER PAGES
+  res.renderPage = (page, title, configObject = {}) => res.render(page, { title, ...configObject })
+
   next();
 }
 
