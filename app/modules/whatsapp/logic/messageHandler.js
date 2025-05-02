@@ -3,21 +3,26 @@ import service from "./service.js";
 
 class MessageHandler {
   constructor() {
+    this.surveys = {}
     this.survey1State = {}
+
+    this.getSurveysData()
+  }
+
+  async getSurveysData() {
+    // Aqui se carga la logica para cargar los datos
+    // await this.pruebas()
   }
 
   // Recibe Mensaje - ESTA FUNCION ES LA BASE DE TODO
   async handleIncomingMessage(message, senderInfo) {
-    // console.log(this.appointmentState);
-    // console.log(this.assistandState);
-
+    // console.log(this.survey1State);
 
     if (message?.type === 'text') { // Si manda un texto
 
       const incomingMessage = message.text.body.toLowerCase().trim(); // limpia el mensaje
 
       if (incomingMessage == "test") {
-        // await this.pruebas()
         await service.sendMessage(message.from, "Test")
       }
       else if (this.isGreeting(incomingMessage)) {
@@ -92,16 +97,6 @@ class MessageHandler {
     // respuestas: [undefined, undefined, 'Hombre/Mujer/No Binario']
 
     /* ------- */
-  }
-
-  // Obtiene el nombre
-  getSenderName(senderInfo) {
-    // console.log("senderInfo: ", senderInfo); // { profile: { name: 'Gustavo Andrés' }, wa_id: '5493541xxxxxx' }
-
-    const name = senderInfo.profile?.name ? senderInfo.profile?.name.split(" ")[0] : null;
-
-    const sendName = name || senderInfo.wa_id || "";
-    return sendName == "" ? "" : " " + sendName
   }
 
   // Si es saludo de apertura ( hola, buenas, buenos dias, .. etc)
