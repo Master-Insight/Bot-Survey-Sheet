@@ -1,5 +1,5 @@
 import { contact, location } from "../../../config/contact.js";
-import appendToSheet from "../../googleapis/logic/googleSheetsService.js";
+import { addToSheet } from "../../googleapis/logic/googleSheetsService.js";
 import openAiService from "../../opeai/logic/openAiService.js";
 import service from "./service.js";
 
@@ -199,7 +199,7 @@ class MessageHandler {
       new Date().toISOString()
     ]
 
-    appendToSheet(userData); // Guarda los datos en Sheets
+    addToSheet(userData); // Guarda los datos en Sheets
 
     return `Gracias por agendar tu cita.
 
