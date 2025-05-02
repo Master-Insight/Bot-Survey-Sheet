@@ -3,7 +3,7 @@ import service from "./service.js";
 
 class MessageHandler {
   constructor() {
-    this.surveyState = {}
+    this.survey1State = {}
   }
 
   // Recibe Mensaje - ESTA FUNCION ES LA BASE DE TODO
@@ -20,13 +20,47 @@ class MessageHandler {
         // await this.pruebas()
         await service.sendMessage(message.from, "Test")
       }
-      else if (this.isGreeting(incomingMessage)) { // es saludo de apertura ??
-        await service.sendMessage(message.from, "Inicio"); // manda bienvenida
+      else if (this.isGreeting(incomingMessage)) {
+        await service.sendMessage(message.from, "Inicio");
+        await this.sendInitialMenu(message.from); // Menu INICIAL
       }
 
       await service.markAsRead(message.id); // marca como leido
 
+    } else if (message?.type === 'interactive') { // Si elije una opcion interactiva
+
+      const optionId = message?.interactive?.button_reply?.id; // "id" del elemento
+      await this.handleMenuOption(message.from, optionId) // maneja la opcion elegida
+      await service.markAsRead(message.id); // marca como leido
     }
+  }
+
+  // MENU Inicial
+  async sendInitialMenu(to) {
+    const menuTitle = "Elige una Opción"
+    const buttons = [
+      { type: 'reply', reply: { id: 'option_1', title: 'Encuesta 1' } },
+    ]
+    await service.sendInteractiveButtons(to, menuTitle, buttons)
+  }
+
+  // HANDLER MENUS
+  async handleMenuOption(to, optionId) {
+    let response;
+    switch (optionId) {
+
+      // ? MENU INICIAL
+      case 'option_1': // respuesta a la eleccion del menu
+        this.survey1State[to] = { step: '1' } // aqui es donde el "flujo" se inicia de agendar cita
+        response = "Por favor, ingresa tu nombre: "
+        break;
+
+      // ? OPCION POR DEFETO
+      default:
+        response = 'Lo siento, no entendí tu selección. Por favor, elige una de las opciones del menú.';
+        break;
+    }
+    await service.sendMessage(to, response);
   }
 
 
