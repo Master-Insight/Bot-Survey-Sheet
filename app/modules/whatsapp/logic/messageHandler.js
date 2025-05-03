@@ -137,19 +137,22 @@ class MessageHandler {
 
   // Lógica según opción de menú
   async handleMenuOption(to, optionId) {
-    switch (optionId) {
-      case 'survey_1':
-        // Inicia encuesta
-        this.survey1State[to] = {
-          step: 0,
-          answers: []
-        };
-        await this.handleQuestions(to, 0);
-        break;
+    const index = parseInt(optionId.replace('survey_', '')); // ontengo el index de las opciones
 
-      default:
-        await service.sendMessage(to, "❓ No entendí tu selección.");
+    const selectedSurvey = MessageHandler.surveys?.[index];
+
+    if (!selectedSurvey) {
+      await service.sendMessage(to, "⚠️ Encuesta no encontrada.");
+      return;
     }
+
+    this.survey1State[to] = {
+      step: 0,
+      answers: [],
+      surveyIndex: index,
+    };
+
+    await this.handleQuestions(to, 0);
   }
 
   // Genera la siguiente pregunta
