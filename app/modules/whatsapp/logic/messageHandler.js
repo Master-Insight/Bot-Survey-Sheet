@@ -8,10 +8,6 @@ class MessageHandler {
   constructor() {
     this.survey1State = {}; // Guarda paso y respuestas por usuario
     this.init(); // Carga encuestas al arrancar
-
-    if (!MessageHandler.surveys || MessageHandler.surveys.length === 0) {
-      console.warn("⚠️ No se cargaron encuestas desde TCONFIG.");
-    }
   }
 
   // * METODOS INICIALES Y DE CARGA
