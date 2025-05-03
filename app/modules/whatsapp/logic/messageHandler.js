@@ -83,7 +83,7 @@ class MessageHandler {
 
         // Está respondiendo la encuesta
       } else if (this.survey1State[sender]) {
-        this.handleQuestions(sender, incomingMessage)
+        this.handleQuestions(sender, this.survey1State[sender].step, incomingMessage)
 
       } else if (incomingMessage === "test") {
         await service.sendMessage(sender, "✅ Test");
@@ -95,8 +95,17 @@ class MessageHandler {
       console.log("📊 Estado actual:", this.survey1State[sender]);
 
     } else if (message?.type === 'interactive') { // Captura acciones interactivas (menu)
+
       const optionId = message?.interactive?.button_reply?.id;
-      await this.handleMenuOption(sender, optionId);
+      const optionText = message?.interactive?.button_reply?.title;
+
+      if (this.survey1State[sender]) {
+        const step = this.survey1State[sender].step;
+        await this.handleQuestions(sender, step, optionText);
+      } else {
+        await this.handleMenuOption(sender, optionId);
+      }
+
       await service.markAsRead(message.id);
     }
   }
@@ -121,7 +130,7 @@ class MessageHandler {
           step: 0,
           answers: []
         };
-        await this.askNextQuestion(to);
+        await this.handleQuestions(to, 0);
         break;
 
       default:
@@ -129,48 +138,55 @@ class MessageHandler {
     }
   }
 
-  async handleQuestions(to, answer) {
-    const state = this.survey1State[to]; // recibe estado de la encuesta
+  // Genera la siguiente pregunta
+  async handleQuestions(to, step, answer = "") {
+    const userState = this.survey1State[to]; // recibe estado de la encuesta
 
+    // Trata la respuesta
+    if (step > 0) { userState.answers.push(answer) };
+
+    // Prepara pregunta
     const survey = MessageHandler.surveys?.[0]; // recupera las encuestas
     if (!survey) return;
+    const question = survey.questions[step];
+    const options = survey.choices[step]
 
-    // Guarda respuesta anterior
-    state.answers[state.step] = answer;
+    // Si no hay más preguntas, se terminó la encuesta
+    if (!question) {
+      await this.handleSurveyEnd(to, userState.answers);
+      delete this.survey1State[to];
+      return;
+    }
 
     // Avanza al siguiente paso
-    state.step += 1;
+    userState.step += 1;
 
-    if (state.step >= survey.questions.length) {
-      await this.handleSurveyCompleted(to);
+    // Si hay opciones, mostrar botones sino es una respuesta libre
+    if (Array.isArray(options)) {
+      const buttons = options.map((opt, i) => ({
+        type: 'reply',
+        reply: { id: `step_${step}_opt_${i}`, title: opt },
+      }));
+      await service.sendInteractiveButtons(to, question, buttons);
     } else {
-      await this.askNextQuestion(to);
-    }
-
-  }
-
-  // Envía la siguiente pregunta al usuario
-  async askNextQuestion(to) {
-    const state = this.survey1State[to];
-    const survey = MessageHandler.surveys?.[0];
-    const question = survey?.questions[state.step];
-
-    if (question) {
-      await service.sendMessage(to, `❓ ${question}`);
+      await service.sendMessage(to, question);
     }
   }
 
-  // * Acción al terminar la encuesta
-  async handleSurveyCompleted(to) {
-    const state = this.survey1State[to]; // recibe estado de la encuesta
-    const answers = state.answers // obtiene las respuesta
-    delete this.survey1State[to]; // Limpia estado
+  // Acción al terminar la encuesta
+  async handleSurveyEnd(to, answers) {
+    const userState = this.survey1State[to]; // recibe estado de la encuesta
 
     const resumen = answers.map((res, i) => `• ${MessageHandler.surveys[0].questions[i]}: ${res}`).join("\n");
     await service.sendMessage(to, `✅ Encuesta completada:\n\n${resumen}`);
 
-    const result = await addToSheet(answers)
-    await service.sendMessage(to, result)
+    try {
+      await addToSheet([to, ...answers], 'answers');
+      await service.sendMessage(to, "📄 Tus respuestas fueron registradas.");
+    } catch (error) {
+      await service.sendMessage(to, "⚠️ Hubo un problema al guardar tus respuestas.");
+      console.error("❌ Error al guardar encuesta:", error);
+    }
 
   }
 
