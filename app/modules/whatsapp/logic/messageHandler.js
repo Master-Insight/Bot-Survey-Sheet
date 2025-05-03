@@ -2,106 +2,116 @@ import { addToSheet, getFromSheet } from "../../googleapis/logic/googleSheetsSer
 import service from "./service.js";
 
 class MessageHandler {
+  // Variable estática para evitar recargar preguntas por cada instancia
+  static surveys = null
+
   constructor() {
-    this.surveys = {}
-    this.survey1State = {}
-
-    this.getSurveysData()
+    this.survey1State = {}; // Estado individual por contacto
+    this.init(); // Carga inicial
   }
 
+  // * METODOS INICIALES Y DE CARGA
+
+  // Método para inicializar el bot
+  async init() {
+    try {
+      MessageHandler.surveys = await getFromSheet('TPREGUNTAS');
+      console.log('🔄 Surveys loaded:', MessageHandler.surveys);
+    } catch (error) {
+      console.error('❌ Error al cargar encuestas en init:', error);
+    }
+  }
+
+  // Método reutilizable para recargar encuestas
+  static async reloadSurveys() {
+    try {
+      MessageHandler.surveys = await getFromSheet('TPREGUNTAS');
+      console.log('✅ Surveys reloaded:', MessageHandler.surveys);
+    } catch (error) {
+      console.error('❌ Error al recargar encuestas:', error);
+    }
+  }
+
+  // Procesa las encuestas y las separa en preguntas/respuestas
   async getSurveysData() {
-    // Aqui se carga la logica para cargar los datos
-    // await this.pruebas()
+    try {
+      const datos = await getFromSheet();
+      if (!Array.isArray(datos)) return;
+
+      datos.shift(); // Eliminar headers
+      const questions = datos.map(row => row[0]);
+      const answers = datos.map(row => row[1]);
+
+      this.surveys = [{ questions, answers }];
+    } catch (error) {
+      console.error("❌ Error al procesar datos de encuesta:", error);
+    }
   }
 
-  // Recibe Mensaje - ESTA FUNCION ES LA BASE DE TODO
+  // * METODO CENTRAL: recibe mensajes entrantes
+
   async handleIncomingMessage(message, senderInfo) {
-    // console.log(this.survey1State);
+    const sender = message.from;
+    console.log("📩 Mensaje recibido de:", sender);
+    console.log("📊 Estado actual:", this.survey1State[sender]);
 
-    if (message?.type === 'text') { // Si manda un texto
-
+    if (message?.type === 'text') { // Captura mensajes texto
       const incomingMessage = message.text.body.toLowerCase().trim(); // limpia el mensaje
 
-      if (incomingMessage == "test") {
-        await service.sendMessage(message.from, "Test")
-      }
-      else if (this.isGreeting(incomingMessage)) {
-        await service.sendMessage(message.from, "Inicio");
-        await this.sendInitialMenu(message.from); // Menu INICIAL
+      if (incomingMessage === "test") {
+        await service.sendMessage(sender, "✅ Test");
+        await service.markAsRead(message.id);
+        return;
       }
 
-      await service.markAsRead(message.id); // marca como leido
+      if (this.isGreeting(incomingMessage)) {
+        await service.sendMessage(sender, "👋 ¡Bienvenido!");
+        await this.sendInitialMenu(sender); // Menu INICIAL
+        await service.markAsRead(message.id);
+        return;
+      }
 
-    } else if (message?.type === 'interactive') { // Si elije una opcion interactiva
 
-      const optionId = message?.interactive?.button_reply?.id; // "id" del elemento
-      await this.handleMenuOption(message.from, optionId) // maneja la opcion elegida
-      await service.markAsRead(message.id); // marca como leido
+    } else if (message?.type === 'interactive') { // Captura acciones interactivas (menu)
+      const optionId = message?.interactive?.button_reply?.id;
+      await this.handleMenuOption(sender, optionId);
+      await service.markAsRead(message.id);
     }
   }
 
-  // MENU Inicial
+  // * MENU
+
+  // Muestra el menú inicial con botones
   async sendInitialMenu(to) {
-    const menuTitle = "Elige una Opción"
+    const menuTitle = "📋 Elige una Opción";
     const buttons = [
       { type: 'reply', reply: { id: 'option_1', title: 'Encuesta 1' } },
-    ]
-    await service.sendInteractiveButtons(to, menuTitle, buttons)
+    ];
+    await service.sendInteractiveButtons(to, menuTitle, buttons);
   }
 
-  // HANDLER MENUS
+  // Maneja opciones del menú
   async handleMenuOption(to, optionId) {
     let response;
+
     switch (optionId) {
-
-      // ? MENU INICIAL
-      case 'option_1': // respuesta a la eleccion del menu
-        this.survey1State[to] = { step: '1' } // aqui es donde el "flujo" se inicia de agendar cita
-        response = "Por favor, ingresa tu nombre: "
+      case 'option_1':
+        this.survey1State[to] = { step: '1' }; // Inicia flujo para el usuario
+        response = "📝 Por favor, ingresa tu nombre:";
         break;
 
-      // ? OPCION POR DEFETO
       default:
-        response = 'Lo siento, no entendí tu selección. Por favor, elige una de las opciones del menú.';
-        break;
+        response = "❓ No entendí tu selección. Elige una opción del menú.";
     }
+
     await service.sendMessage(to, response);
   }
 
+  // * Auxiliares
 
-  async pruebas() {
-    /* PRUEBAS */
-    let datos = []
-    let preguntas = []
-    let respuestas = []
-
-    datos = await getFromSheet()
-    // console.log(   );
-
-    console.log("datos: ", datos);
-    if (Array.isArray(datos)) {
-      datos.shift();
-      preguntas = datos.map(rgln => rgln[0])
-      respuestas = datos.map(rgln => rgln[1])
-    }
-    console.log("preguntas: ", preguntas);
-    console.log("respuestas: ", respuestas);
-
-    // datos: [
-    //   ['Preguntas', 'Posibles Respuestas'],
-    //   ['Indica tu nombre'],
-    //   ['Edad'],
-    //   ['Sexo', 'Hombre/Mujer/No Binario']
-    // ]
-    // preguntas: ['Indica tu nombre', 'Edad', 'Sexo']
-    // respuestas: [undefined, undefined, 'Hombre/Mujer/No Binario']
-
-    /* ------- */
-  }
-
-  // Si es saludo de apertura ( hola, buenas, buenos dias, .. etc)
+  // Determina si el mensaje es un saludo inicial
   isGreeting(message) {
-    const greetings = ["hola", "holas", "buenas", "buenas tardes", "buenas días"];
+    const greetings = ["hola", "holas", "buenas", "buenas tardes", "buenos días"];
     return greetings.includes(message);
   }
 }
