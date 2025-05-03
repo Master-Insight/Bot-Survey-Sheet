@@ -88,6 +88,9 @@ class MessageHandler {
     console.log("📩 Mensaje recibido de:", sender);
 
     if (message?.type === 'text') { // Captura Texto plano
+      // 🔍 Revisa si es una frase clave que inicia encuesta
+      const started = await this.checkSurveyTrigger(incomingMessage, sender);
+      if (started) return;
 
       if (this.isGreeting(incomingMessage)) {
         await service.sendMessage(sender, "👋 ¡Bienvenido!");
@@ -215,6 +218,32 @@ class MessageHandler {
   isGreeting(message) {
     const greetings = ["hola", "holas", "buenas", "buenas tardes", "buenos días"];
     return greetings.includes(message);
+  }
+
+  // Verifica trigger
+  async checkSurveyTrigger(text, to) {
+    if (!MessageHandler.surveys) return false;
+
+    const normalizedText = text.toLowerCase().trim();
+
+    const matchedIndex = MessageHandler.surveys.findIndex(s =>
+      normalizedText === s.title.toLowerCase()
+    );
+
+    if (matchedIndex === -1) return false;
+
+    // Reiniciar estado anterior si lo hay
+    delete this.survey1State[to];
+
+    // Iniciar flujo directamente
+    this.survey1State[to] = {
+      step: 0,
+      answers: [],
+      surveyIndex: matchedIndex,
+    };
+
+    await this.handleQuestions(to, 0);
+    return true;
   }
 }
 
