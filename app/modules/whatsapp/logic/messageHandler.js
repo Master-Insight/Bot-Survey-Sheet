@@ -32,35 +32,44 @@ class MessageHandler {
     }
   }
 
-  // Procesamiento de la hoja de cálculo
+  // Procesamiento para carga de encuestas
   async getSurveysData() {
     try {
-      const datos = await getFromSheet('TPREGUNTAS');
-      if (!Array.isArray(datos)) return;
+      // Obtener configuracion de encuestas
+      const config = await getFromSheet('TCONFIG');
+      if (!Array.isArray(config)) return;
+      config.shift(); // Eliminar headers
 
-      datos.shift(); // Eliminar headers
+      const surveys = [];
 
-      const questions = [];
-      const choices = [];
+      for (const row of config) {
+        const title = row[0]?.trim(); // titulo
+        const range = row[1]?.trim(); // Rango
+        if (!title || !range) continue;
 
-      for (const row of datos) {
-        const pregunta = row[0]?.trim() ?? "";
-        const opcionesRaw = row[1]?.trim();
 
-        questions.push(pregunta);
+        const datos = await getFromSheet(range);
+        if (!Array.isArray(datos)) return;
+        datos.shift(); // Eliminar headers
 
-        // Si hay opciones, las dividimos por "/"
-        if (opcionesRaw) {
-          const opciones = opcionesRaw.split('/').map(opt => opt.trim());
-          choices.push(opciones); // Array de strings
-        } else {
-          choices.push(undefined); // No tiene opciones, es respuesta libre
+        const questions = [];
+        const choices = [];
+
+        for (const row of datos) {
+          const pregunta = row[0]?.trim() ?? "";
+          const opcionesRaw = row[1]?.trim();
+
+          questions.push(pregunta);
+          choices.push(opcionesRaw ? opcionesRaw.split("/").map(o => o.trim()) : undefined);
         }
+
+        surveys.push({ title, range, questions, choices });
       }
 
-      return [{ questions, choices }];
+      return surveys;
+
     } catch (error) {
-      console.error("❌ Error al procesar datos de encuesta:", error);
+      console.error("❌ Error al procesar datos de las encuestas:", error);
     }
   }
 
