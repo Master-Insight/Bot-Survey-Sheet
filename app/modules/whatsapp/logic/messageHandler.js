@@ -171,7 +171,7 @@ class MessageHandler {
 
     // Si no hay más preguntas, se terminó la encuesta
     if (!question) {
-      await this.handleSurveyEnd(to, userState.answers);
+      await this.handleSurveyEnd(to, userState.answers, survey.title);
       delete this.survey1State[to];
       return;
     }
@@ -192,20 +192,17 @@ class MessageHandler {
   }
 
   // Acción al terminar la encuesta
-  async handleSurveyEnd(to, answers) {
-    const userState = this.survey1State[to]; // recibe estado de la encuesta
-
-    const resumen = answers.map((res, i) => `• ${MessageHandler.surveys[0].questions[i]}: ${res}`).join("\n");
-    await service.sendMessage(to, `✅ Encuesta completada:\n\n${resumen}`);
+  async handleSurveyEnd(to, answers, title) {
+    const resumen = answers.map((res, i) => `• ${MessageHandler.surveys.find(s => s.title === title).questions[i]}: ${res}`).join("\n");
+    await service.sendMessage(to, `✅ Encuesta "${title}" completada:\n\n${resumen}`);
 
     try {
-      await addToSheet([to, ...answers], 'answers');
+      await addToSheet([to, title, ...answers], 'answers');
       await service.sendMessage(to, "📄 Tus respuestas fueron registradas.");
     } catch (error) {
-      await service.sendMessage(to, "⚠️ Hubo un problema al guardar tus respuestas.");
       console.error("❌ Error al guardar encuesta:", error);
+      await service.sendMessage(to, "⚠️ Hubo un problema al guardar tus respuestas.");
     }
-
   }
 
   // * Auxiliares
