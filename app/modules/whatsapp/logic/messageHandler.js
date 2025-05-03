@@ -39,8 +39,24 @@ class MessageHandler {
       if (!Array.isArray(datos)) return;
 
       datos.shift(); // Eliminar headers
-      const questions = datos.map(row => row[0]);
-      const choices = datos.map(row => row[1]);
+
+      const questions = [];
+      const choices = [];
+
+      for (const row of datos) {
+        const pregunta = row[0]?.trim() ?? "";
+        const opcionesRaw = row[1]?.trim();
+
+        questions.push(pregunta);
+
+        // Si hay opciones, las dividimos por "/"
+        if (opcionesRaw) {
+          const opciones = opcionesRaw.split('/').map(opt => opt.trim());
+          choices.push(opciones); // Array de strings
+        } else {
+          choices.push(undefined); // No tiene opciones, es respuesta libre
+        }
+      }
 
       return [{ questions, choices }];
     } catch (error) {
