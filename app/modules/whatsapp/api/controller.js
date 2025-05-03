@@ -37,12 +37,6 @@ class Controller {
     }
     res.sendStatus(200);
   }
-
-
-
-
-
-
 }
 
 export default new Controller();

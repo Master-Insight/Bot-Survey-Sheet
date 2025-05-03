@@ -8,10 +8,6 @@ class MessageHandler {
   constructor() {
     this.survey1State = {}; // Guarda paso y respuestas por usuario
     this.init(); // Carga encuestas al arrancar
-
-    if (!MessageHandler.surveys || MessageHandler.surveys.length === 0) {
-      console.warn("⚠️ No se cargaron encuestas desde TCONFIG.");
-    }
   }
 
   // * METODOS INICIALES Y DE CARGA
@@ -20,7 +16,6 @@ class MessageHandler {
   async init() {
     try {
       MessageHandler.surveys = await this.getSurveysData();
-      console.log('🔄 Surveys loaded:', MessageHandler.surveys);
     } catch (error) {
       console.error('❌ Error al cargar encuestas en init:', error);
     }
@@ -30,7 +25,6 @@ class MessageHandler {
   static async reloadSurveys() {
     try {
       MessageHandler.surveys = await getFromSheet('TPREGUNTAS');
-      console.log('✅ Surveys reloaded:', MessageHandler.surveys);
     } catch (error) {
       console.error('❌ Error al recargar encuestas:', error);
     }
@@ -85,8 +79,6 @@ class MessageHandler {
 
     if (!sender || !message) return; // seguro
 
-    console.log("📩 Mensaje recibido de:", sender);
-
     if (message?.type === 'text') { // Captura Texto plano
       // 🔍 Revisa si es una frase clave que inicia encuesta
       const started = await this.checkSurveyTrigger(incomingMessage, sender);
@@ -106,9 +98,6 @@ class MessageHandler {
         await service.markAsRead(message.id);
         return;
       }
-
-
-      console.log("📊 Estado actual:", this.survey1State[sender]);
 
     } else if (message?.type === 'interactive') { // Captura acciones interactivas (menu)
 
