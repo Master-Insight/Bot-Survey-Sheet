@@ -1,59 +1,61 @@
-import path from 'path';
-import configEnv from '../../../config/env.js';
-import { google } from 'googleapis';
+import path from 'path'
+import { google } from 'googleapis'
+import configEnv from '../../../config/env.js'
 
 const { GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY, GOOGLE_SHEETS_ID } = configEnv
 
-const sheets = google.sheets({ version: 'v4' }); // { version: 'v4', auth } // tambien puedo incluir auth alli
+// 🛡️ Crea el authClient usando JWT y claves desde variables de entorno
+// Auth global, se usa cuando el cliente de Google siempre es el mismo, sino se pasa en las peticiones
 
-// Funcion de agregado guardar datos
-async function addRowToSheet(auth, spreadsheetId, values) {
-  const request = {
-    spreadsheetId,
-    range: 'Reservas', // Eso es el nombre de hoja, tambien puede ser nombre de rango o rango nombrado: 'Sorteo!A:E'
-    valueInputOption: 'RAW',
-    insertDataOption: 'INSERT_ROWS',
-    resource: {
-      values: [values], // values es un array
-    },
-    auth,
-  }
+const auth = new google.auth.JWT(
+  GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  null,
+  GOOGLE_PRIVATE_KEY, // Ajuste para claves privadas (los saltos corregir en el ENV)
+  ['https://www.googleapis.com/auth/spreadsheets'],
+);
+// Cliente de Sheets con auth incluido
+const sheets = google.sheets({ version: 'v4', auth })
 
+/**
+ * ✍️ Escribe una fila en la hoja o rango indicado
+ * @param {Array} data - Array de datos (ej: ['Juan', 'Pérez', 'juan@mail.com'])
+ * @param {string} range - Nombre de hoja (ej: 'answers'), rango (ej: 'Consultas!A:D') o rango nombrado (ej: 'TPREGUNTAS')
+ * @param {string} spreadsheetId - Opcional, usa el ID por defecto si no se pasa
+ */
+export async function addToSheet(data, range = 'answers', spreadsheetId = GOOGLE_SHEETS_ID) {
   try {
-    const response = await sheets.spreadsheets.values.append(request).data;
-    return response;
-  } catch (error) {
-    console.error('Error in addRowToSheet:', error);
-  }
-}
-
-// Authentifica y llama a funcion de agregado
-const appendToSheet = async (data) => {
-  try {
-    // * Autenticación con Google Sheets con GoogleAuth
-    const auth = new google.auth.GoogleAuth({
-      keyFile: path.join(process.cwd(), 'app/config', 'credentials.json'), // Este archivo se descarga y se ignora 
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    const response = await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range,
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
+      resource: {
+        values: [data],
+      },
     })
 
-    // * Autenticación con Google Sheets con JWT
-    // const auth = new google.auth.JWT(
-    //   GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    //   null,
-    //   GOOGLE_PRIVATE_KEY,
-    //   ['https://www.googleapis.com/auth/spreadsheets']
-    // );
-
-    const authClient = await auth.getClient();
-    const spreadsheetId = GOOGLE_SHEETS_ID
-
-    await addRowToSheet(authClient, spreadsheetId, data)
-
-    return 'Datos correctamente agregados'
-
+    return '✅ Datos correctamente agregados'
   } catch (error) {
-    console.error('Error in appendToSheet:', error);
+    console.error('❌ Error en addToSheet:', error)
+    throw error
   }
 }
 
-export default appendToSheet;
+/**
+ * 📖 Lee datos desde un rango (ej: 'Consultas!A:G' o un rango nombrado como 'TPREGUNTAS')
+ * @param {string} range - Rango explícito o rango nombrado (debe existir en el archivo)
+ * @param {string} spreadsheetId - Opcional, usa el ID por defecto si no se pasa
+ * @returns {Array[]} - Array de arrays de valores
+ */
+export async function getFromSheet(range = "TPREGUNTAS", spreadsheetId = GOOGLE_SHEETS_ID) {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range,
+    })
+    return response.data.values
+  } catch (error) {
+    console.error('❌ Error en readRange::', error);
+    throw error
+  }
+}
