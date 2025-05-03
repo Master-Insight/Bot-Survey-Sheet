@@ -57,7 +57,6 @@ class MessageHandler {
     if (!sender || !message) return; // seguro
 
     console.log("📩 Mensaje recibido de:", sender);
-    console.log("📊 Estado actual:", this.survey1State[sender]);
 
     if (message?.type === 'text') { // Captura Texto plano
 
@@ -65,21 +64,19 @@ class MessageHandler {
         await service.sendMessage(sender, "👋 ¡Bienvenido!");
         await this.sendInitialMenu(sender); // Menu INICIAL
         await service.markAsRead(message.id);
-        return;
-      }
 
-      // Está respondiendo la encuesta
-      if (this.survey1State[sender]) {
+        // Está respondiendo la encuesta
+      } else if (this.survey1State[sender]) {
         this.handleQuestions(sender, incomingMessage)
-        return;
-      }
 
-      if (incomingMessage === "test") {
+      } else if (incomingMessage === "test") {
         await service.sendMessage(sender, "✅ Test");
         await service.markAsRead(message.id);
         return;
       }
 
+
+      console.log("📊 Estado actual:", this.survey1State[sender]);
 
     } else if (message?.type === 'interactive') { // Captura acciones interactivas (menu)
       const optionId = message?.interactive?.button_reply?.id;
@@ -129,8 +126,7 @@ class MessageHandler {
     state.step += 1;
 
     if (state.step >= survey.questions.length) {
-      await this.handleSurveyCompleted(to, state.answers);
-      delete this.survey1State[to]; // Limpia estado
+      await this.handleSurveyCompleted(to);
     } else {
       await this.askNextQuestion(to);
     }
@@ -149,11 +145,17 @@ class MessageHandler {
   }
 
   // * Acción al terminar la encuesta
-  async handleSurveyCompleted(to, answers) {
+  async handleSurveyCompleted(to) {
+    const state = this.survey1State[to]; // recibe estado de la encuesta
+    const answers = state.answers // obtiene las respuesta
+    delete this.survey1State[to]; // Limpia estado
+
     const resumen = answers.map((res, i) => `• ${MessageHandler.surveys[0].questions[i]}: ${res}`).join("\n");
     await service.sendMessage(to, `✅ Encuesta completada:\n\n${resumen}`);
 
-    // Aquí podrías hacer un addToSheet(to, answers) o llamar a una API
+    const result = await addToSheet(answers)
+    await service.sendMessage(to, result)
+
   }
 
   // * Auxiliares
