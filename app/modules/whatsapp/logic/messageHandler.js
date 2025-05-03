@@ -15,7 +15,7 @@ class MessageHandler {
   // Método para inicializar el bot
   async init() {
     try {
-      MessageHandler.surveys = await getFromSheet('TPREGUNTAS');
+      MessageHandler.surveys = await this.getSurveysData();
       console.log('🔄 Surveys loaded:', MessageHandler.surveys);
     } catch (error) {
       console.error('❌ Error al cargar encuestas en init:', error);
@@ -35,14 +35,14 @@ class MessageHandler {
   // Procesa las encuestas y las separa en preguntas/respuestas
   async getSurveysData() {
     try {
-      const datos = await getFromSheet();
+      const datos = await getFromSheet('TPREGUNTAS');
       if (!Array.isArray(datos)) return;
 
       datos.shift(); // Eliminar headers
       const questions = datos.map(row => row[0]);
       const answers = datos.map(row => row[1]);
 
-      this.surveys = [{ questions, answers }];
+      return [{ questions, answers }];
     } catch (error) {
       console.error("❌ Error al procesar datos de encuesta:", error);
     }
