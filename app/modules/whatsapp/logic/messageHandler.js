@@ -8,6 +8,10 @@ class MessageHandler {
   constructor() {
     this.survey1State = {}; // Guarda paso y respuestas por usuario
     this.init(); // Carga encuestas al arrancar
+
+    if (!MessageHandler.surveys || MessageHandler.surveys.length === 0) {
+      console.warn("⚠️ No se cargaron encuestas desde TCONFIG.");
+    }
   }
 
   // * METODOS INICIALES Y DE CARGA
@@ -32,35 +36,44 @@ class MessageHandler {
     }
   }
 
-  // Procesamiento de la hoja de cálculo
+  // Procesamiento para carga de encuestas
   async getSurveysData() {
     try {
-      const datos = await getFromSheet('TPREGUNTAS');
-      if (!Array.isArray(datos)) return;
+      // Obtener configuracion de encuestas
+      const config = await getFromSheet('TCONFIG');
+      if (!Array.isArray(config)) return;
+      config.shift(); // Eliminar headers
 
-      datos.shift(); // Eliminar headers
+      const surveys = [];
 
-      const questions = [];
-      const choices = [];
+      for (const row of config) {
+        const title = row[0]?.trim(); // titulo
+        const range = row[1]?.trim(); // Rango
+        if (!title || !range) continue;
 
-      for (const row of datos) {
-        const pregunta = row[0]?.trim() ?? "";
-        const opcionesRaw = row[1]?.trim();
 
-        questions.push(pregunta);
+        const datos = await getFromSheet(range);
+        if (!Array.isArray(datos)) return;
+        datos.shift(); // Eliminar headers
 
-        // Si hay opciones, las dividimos por "/"
-        if (opcionesRaw) {
-          const opciones = opcionesRaw.split('/').map(opt => opt.trim());
-          choices.push(opciones); // Array de strings
-        } else {
-          choices.push(undefined); // No tiene opciones, es respuesta libre
+        const questions = [];
+        const choices = [];
+
+        for (const row of datos) {
+          const pregunta = row[0]?.trim() ?? "";
+          const opcionesRaw = row[1]?.trim();
+
+          questions.push(pregunta);
+          choices.push(opcionesRaw ? opcionesRaw.split("/").map(o => o.trim()) : undefined);
         }
+
+        surveys.push({ title, range, questions, choices });
       }
 
-      return [{ questions, choices }];
+      return surveys;
+
     } catch (error) {
-      console.error("❌ Error al procesar datos de encuesta:", error);
+      console.error("❌ Error al procesar datos de las encuestas:", error);
     }
   }
 
@@ -75,8 +88,11 @@ class MessageHandler {
     console.log("📩 Mensaje recibido de:", sender);
 
     if (message?.type === 'text') { // Captura Texto plano
+      // 🔍 Revisa si es una frase clave que inicia encuesta
+      const started = await this.checkSurveyTrigger(incomingMessage, sender);
+      if (started) return;
 
-      if (this.isGreeting(incomingMessage)) {
+      if (this.isGreeting(incomingMessage, sender)) {
         await service.sendMessage(sender, "👋 ¡Bienvenido!");
         await this.sendInitialMenu(sender); // Menu INICIAL
         await service.markAsRead(message.id);
@@ -114,46 +130,55 @@ class MessageHandler {
 
   // Menú inicial con botones
   async sendInitialMenu(to) {
+
+    // Si existen encuestas optiene las opciones
+    if (!MessageHandler.surveys) return;
+    const buttons = MessageHandler.surveys.map((survey, i) => ({
+      type: 'reply',
+      reply: { id: `survey_${i}`, title: survey.title, }
+    }))
+
     const menuTitle = "📋 Elige una Opción";
-    const buttons = [
-      { type: 'reply', reply: { id: 'option_1', title: 'Encuesta 1' } },
-    ];
     await service.sendInteractiveButtons(to, menuTitle, buttons);
   }
 
   // Lógica según opción de menú
   async handleMenuOption(to, optionId) {
-    switch (optionId) {
-      case 'option_1':
-        // Inicia encuesta
-        this.survey1State[to] = {
-          step: 0,
-          answers: []
-        };
-        await this.handleQuestions(to, 0);
-        break;
+    const index = parseInt(optionId.replace('survey_', '')); // ontengo el index de las opciones
 
-      default:
-        await service.sendMessage(to, "❓ No entendí tu selección.");
+    const selectedSurvey = MessageHandler.surveys?.[index];
+
+    if (!selectedSurvey) {
+      await service.sendMessage(to, "⚠️ Encuesta no encontrada.");
+      return;
     }
+
+    this.survey1State[to] = {
+      step: 0,
+      answers: [],
+      surveyIndex: index,
+    };
+
+    await this.handleQuestions(to, 0);
   }
 
   // Genera la siguiente pregunta
   async handleQuestions(to, step, answer = "") {
     const userState = this.survey1State[to]; // recibe estado de la encuesta
+    const survey = MessageHandler.surveys?.[userState.surveyIndex]; // recupera la seleccionada
+
+    if (!survey) return;
 
     // Trata la respuesta
     if (step > 0) { userState.answers.push(answer) };
 
     // Prepara pregunta
-    const survey = MessageHandler.surveys?.[0]; // recupera las encuestas
-    if (!survey) return;
     const question = survey.questions[step];
     const options = survey.choices[step]
 
     // Si no hay más preguntas, se terminó la encuesta
     if (!question) {
-      await this.handleSurveyEnd(to, userState.answers);
+      await this.handleSurveyEnd(to, userState.answers, survey.title);
       delete this.survey1State[to];
       return;
     }
@@ -174,28 +199,55 @@ class MessageHandler {
   }
 
   // Acción al terminar la encuesta
-  async handleSurveyEnd(to, answers) {
-    const userState = this.survey1State[to]; // recibe estado de la encuesta
-
-    const resumen = answers.map((res, i) => `• ${MessageHandler.surveys[0].questions[i]}: ${res}`).join("\n");
-    await service.sendMessage(to, `✅ Encuesta completada:\n\n${resumen}`);
+  async handleSurveyEnd(to, answers, title) {
+    const resumen = answers.map((res, i) => `• ${MessageHandler.surveys.find(s => s.title === title).questions[i]}: ${res}`).join("\n");
+    await service.sendMessage(to, `✅ Encuesta "${title}" completada:\n\n${resumen}`);
 
     try {
-      await addToSheet([to, ...answers], 'answers');
+      await addToSheet([to, title, ...answers], 'answers');
       await service.sendMessage(to, "📄 Tus respuestas fueron registradas.");
     } catch (error) {
-      await service.sendMessage(to, "⚠️ Hubo un problema al guardar tus respuestas.");
       console.error("❌ Error al guardar encuesta:", error);
+      await service.sendMessage(to, "⚠️ Hubo un problema al guardar tus respuestas.");
     }
-
   }
 
   // * Auxiliares
 
   // Determina si el mensaje es un saludo inicial
-  isGreeting(message) {
+  isGreeting(message, to) {
     const greetings = ["hola", "holas", "buenas", "buenas tardes", "buenos días"];
+
+    // elimina estado si habia iniciado antes
+    delete this.survey1State[to];
+
     return greetings.includes(message);
+  }
+
+  // Verifica trigger
+  async checkSurveyTrigger(text, to) {
+    if (!MessageHandler.surveys) return false;
+
+    const normalizedText = text.toLowerCase().trim();
+
+    const matchedIndex = MessageHandler.surveys.findIndex(s =>
+      normalizedText === s.title.toLowerCase()
+    );
+
+    if (matchedIndex === -1) return false;
+
+    // Reiniciar estado anterior si lo hay
+    delete this.survey1State[to];
+
+    // Iniciar flujo directamente
+    this.survey1State[to] = {
+      step: 0,
+      answers: [],
+      surveyIndex: matchedIndex,
+    };
+
+    await this.handleQuestions(to, 0);
+    return true;
   }
 }
 

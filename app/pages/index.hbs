@@ -1,1 +1,16 @@
-<div></div>
+<div class="border-t border-gray-200">
+  {{#each surveys}}
+    {{! ENCUESTA }}
+    <div class="bg-green-200 px-4 py-5 w-full flex justify-between">
+      <a
+        class="text-sm font-bold text-green-600 text-center hover:text-green-800 cursor-pointer"
+        href="https://wa.me/+15551449982/?text={{encodeURIComponent this}}"
+        target="_blank"
+      >
+        Iniciar encuesta:
+        {{this}}
+      </a>
+      <span>💻</span>
+    </div>
+  {{/each}}
+</div>
