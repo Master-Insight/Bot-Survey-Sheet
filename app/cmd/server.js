@@ -15,7 +15,13 @@ app.use(express.json());
 app.use(express.static(__dirname + '/public'));
 
 // Handlebars --------------------------------
-app.engine('hbs', handlebars.engine({ extname: '.hbs' }));
+const hbs = handlebars.create({
+  extname: '.hbs',
+  helpers: {
+    encodeURIComponent: (str) => encodeURIComponent(str)
+  }
+});
+app.engine('hbs', hbs.engine);
 app.set('view engine', 'hbs');
 app.set('views', __dirname + '/pages');
 

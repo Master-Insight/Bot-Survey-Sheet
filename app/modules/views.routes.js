@@ -5,25 +5,14 @@ const router = Router()
 
 router
   .get("/", async (req, res) => {
-    /* PRUEBAS */
-    let datos = []
-    let preguntas = []
-    let respuestas = []
 
-    datos = await getFromSheet()
-    // console.log(   );
+    const config = await getFromSheet('TCONFIG');
+    if (!Array.isArray(config)) return;
+    config.shift(); // Eliminar headers
 
-    console.log("datos: ", datos);
-    if (Array.isArray(datos)) {
-      datos.shift();
-      preguntas = datos.map(rgln => rgln[0])
-      respuestas = datos.map(rgln => rgln[1])
-    }
-    console.log("preguntas: ", preguntas);
-    console.log("respuestas: ", respuestas);
+    const surveys = config.map(rgln => rgln[0])
 
-    /* ------- */
-    res.renderPage("index", "Home", {})
+    res.renderPage("index", "Home", { surveys })
   })
   .get("/politica", (req, res) => {
     res.renderPage("politica", "Politica", {})
