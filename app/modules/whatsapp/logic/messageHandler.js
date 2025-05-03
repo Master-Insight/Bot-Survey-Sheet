@@ -92,7 +92,7 @@ class MessageHandler {
       const started = await this.checkSurveyTrigger(incomingMessage, sender);
       if (started) return;
 
-      if (this.isGreeting(incomingMessage)) {
+      if (this.isGreeting(incomingMessage, sender)) {
         await service.sendMessage(sender, "👋 ¡Bienvenido!");
         await this.sendInitialMenu(sender); // Menu INICIAL
         await service.markAsRead(message.id);
@@ -215,8 +215,12 @@ class MessageHandler {
   // * Auxiliares
 
   // Determina si el mensaje es un saludo inicial
-  isGreeting(message) {
+  isGreeting(message, to) {
     const greetings = ["hola", "holas", "buenas", "buenas tardes", "buenos días"];
+
+    // elimina estado si habia iniciado antes
+    delete this.survey1State[to];
+
     return greetings.includes(message);
   }
 
