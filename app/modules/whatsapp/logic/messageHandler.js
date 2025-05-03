@@ -123,17 +123,22 @@ class MessageHandler {
 
   // Menú inicial con botones
   async sendInitialMenu(to) {
+
+    // Si existen encuestas optiene las opciones
+    if (!MessageHandler.surveys) return;
+    const buttons = MessageHandler.surveys.map((survey, i) => ({
+      type: 'reply',
+      reply: { id: `survey_${i}`, title: survey.title, }
+    }))
+
     const menuTitle = "📋 Elige una Opción";
-    const buttons = [
-      { type: 'reply', reply: { id: 'option_1', title: 'Encuesta 1' } },
-    ];
     await service.sendInteractiveButtons(to, menuTitle, buttons);
   }
 
   // Lógica según opción de menú
   async handleMenuOption(to, optionId) {
     switch (optionId) {
-      case 'option_1':
+      case 'survey_1':
         // Inicia encuesta
         this.survey1State[to] = {
           step: 0,
