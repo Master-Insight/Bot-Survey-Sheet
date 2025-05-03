@@ -158,13 +158,14 @@ class MessageHandler {
   // Genera la siguiente pregunta
   async handleQuestions(to, step, answer = "") {
     const userState = this.survey1State[to]; // recibe estado de la encuesta
+    const survey = MessageHandler.surveys?.[userState.surveyIndex]; // recupera la seleccionada
+
+    if (!survey) return;
 
     // Trata la respuesta
     if (step > 0) { userState.answers.push(answer) };
 
     // Prepara pregunta
-    const survey = MessageHandler.surveys?.[0]; // recupera las encuestas
-    if (!survey) return;
     const question = survey.questions[step];
     const options = survey.choices[step]
 
