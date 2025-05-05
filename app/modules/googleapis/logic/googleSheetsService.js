@@ -33,8 +33,8 @@ export async function addToSheet(data, range = 'answers', spreadsheetId = GOOGLE
         values: [data],
       },
     })
-
     return '✅ Datos correctamente agregados'
+
   } catch (error) {
     console.error('❌ Error en addToSheet:', error)
     throw error
@@ -54,6 +54,7 @@ export async function getFromSheet(range = "TPREGUNTAS", spreadsheetId = GOOGLE_
       range,
     })
     return response.data.values
+
   } catch (error) {
     console.error('❌ Error en readRange::', error);
     throw error
@@ -77,8 +78,36 @@ export async function updateSheetCell(value, cell, spreadsheetId = GOOGLE_SHEETS
       },
     })
     return `✅ Celda ${cell} actualizada`
+
   } catch (error) {
     console.error(`❌ Error en updateSheetCell ${cell}:`, error)
+    throw error
+  }
+}
+
+/**
+ * 🔄 Actualiza múltiples celdas (en bloque)
+ * @param {Array} updates - Valores a colocar
+ * @param {string} spreadsheetId - Opcional, usa el ID por defecto si no se pasa
+ */
+export async function batchUpdateSheetCells(updates = [], spreadsheetId = GOOGLE_SHEETS_ID) {
+  try {
+    const data = updates.map(({ cell, value }) => ({
+      range: cell,
+      values: [[value]]
+    }))
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      resource: {
+        valueInputOption: 'RAW',
+        data
+      }
+    })
+    return `✅ ${updates.length} celdas actualizadas`
+
+  } catch (error) {
+    console.error('❌ Error en batchUpdateSheetCells:', error)
     throw error
   }
 }
