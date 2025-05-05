@@ -57,6 +57,10 @@ class MessageHandler {
       } else if (incomingMessage === "/cargar pendientes") {
         await this.getPendingMessages(sender);
         await service.markAsRead(message.id);
+
+      } else if (incomingMessage === "/enviar siguiente") {
+        await this.sendNextPendingSurvey(sender);
+        await service.markAsRead(message.id);
       }
 
     } else if (message?.type === 'interactive') { // Captura acciones interactivas (menu)
@@ -255,6 +259,8 @@ class MessageHandler {
   }
 
   // * Auxiliares: Tareas Extras
+
+  // Obtiene las filas pendientes de envío desde la hoja 'A enviar'
   async getPendingMessages(to) {
     const values = await getFromSheet("'A enviar'!A2:C")
     if (!Array.isArray(values)) return;
@@ -278,6 +284,40 @@ class MessageHandler {
     await service.sendMessage(to, `📃 Pendientes cargados\n${resumen}`);
 
     console.log(pendientes);
+  }
+
+  // Envía la siguiente encuesta pendiente
+  async sendNextPendingSurvey(to) {
+    if (this.pendientes.length === 0) {
+      await service.sendMessage(to, "✅ No quedan encuestas pendientes.");
+      return;
+    }
+
+    const pendiente = this.pendientes.shift(); // Saca la primera de la cola
+    const { telefono, encuesta, fila } = pendiente;
+
+    const matchedIndex = MessageHandler.surveys.findIndex(s =>
+      encuesta.toLowerCase().trim() === s.title.toLowerCase().trim()
+    );
+
+    if (matchedIndex === -1) {
+      await service.sendMessage(to, `⚠️ Encuesta "${encuesta}" no encontrada para ${telefono}.`);
+      return;
+    }
+
+    // Inicializar estado de usuario
+    this.survey1State[telefono] = {
+      step: 0,
+      answers: [],
+      surveyIndex: matchedIndex,
+      meta: { fila }, // Guardamos info para marcar como enviado después
+    };
+
+    await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
+    await this.handleQuestions(telefono, 0);
+    await service.sendMessage(to, `📨 Encuesta enviada a ${telefono}`);
+
+    // TODO falta poner "enviado"
   }
 }
 
