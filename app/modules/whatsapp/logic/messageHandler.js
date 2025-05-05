@@ -12,62 +12,14 @@ class MessageHandler {
 
   // * METODOS INICIALES Y DE CARGA
 
-  // Carga inicial de encuestas
+  /** Inicializa la clase cargando los datos de encuestas desde Google Sheets
+   * @returns {Promise<void>}
+   */
   async init() {
     try {
       MessageHandler.surveys = await this.getSurveysData();
     } catch (error) {
       console.error('❌ Error al cargar encuestas en init:', error);
-    }
-  }
-
-  // Recarga de encuestas manual
-  static async reloadSurveys() {
-    try {
-      MessageHandler.surveys = await getFromSheet('TPREGUNTAS');
-    } catch (error) {
-      console.error('❌ Error al recargar encuestas:', error);
-    }
-  }
-
-  // Procesamiento para carga de encuestas
-  async getSurveysData() {
-    try {
-      // Obtener configuracion de encuestas
-      const config = await getFromSheet('TCONFIG');
-      if (!Array.isArray(config)) return;
-      config.shift(); // Eliminar headers
-
-      const surveys = [];
-
-      for (const row of config) {
-        const title = row[0]?.trim(); // titulo
-        const range = row[1]?.trim(); // Rango
-        if (!title || !range) continue;
-
-
-        const datos = await getFromSheet(range);
-        if (!Array.isArray(datos)) return;
-        datos.shift(); // Eliminar headers
-
-        const questions = [];
-        const choices = [];
-
-        for (const row of datos) {
-          const pregunta = row[0]?.trim() ?? "";
-          const opcionesRaw = row[1]?.trim();
-
-          questions.push(pregunta);
-          choices.push(opcionesRaw ? opcionesRaw.split("/").map(o => o.trim()) : undefined);
-        }
-
-        surveys.push({ title, range, questions, choices });
-      }
-
-      return surveys;
-
-    } catch (error) {
-      console.error("❌ Error al procesar datos de las encuestas:", error);
     }
   }
 
@@ -96,7 +48,11 @@ class MessageHandler {
       } else if (incomingMessage === "test") {
         await service.sendMessage(sender, "✅ Test");
         await service.markAsRead(message.id);
-        return;
+
+      } else if (incomingMessage === "/recarga") {
+        await this.reloadSurveys(sender)
+        await service.markAsRead(message.id);
+
       }
 
     } else if (message?.type === 'interactive') { // Captura acciones interactivas (menu)
@@ -201,7 +157,60 @@ class MessageHandler {
     }
   }
 
-  // * Auxiliares
+  // * Auxiliares: Carga de datos
+
+  // Recarga de encuestas manual
+  static async reloadSurveys(to) {
+    try {
+      MessageHandler.surveys = await getFromSheet('TPREGUNTAS');
+      await service.sendMessage(to, "🔁 Recarga completada");
+    } catch (error) {
+      console.error('❌ Error al recargar encuestas:', error);
+    }
+  }
+
+  // Procesamiento para carga de encuestas
+  async getSurveysData() {
+    try {
+      // Obtener configuracion de encuestas
+      const config = await getFromSheet('TCONFIG');
+      if (!Array.isArray(config)) return;
+      config.shift(); // Eliminar headers
+
+      const surveys = [];
+
+      for (const row of config) {
+        const title = row[0]?.trim(); // titulo
+        const range = row[1]?.trim(); // Rango
+        if (!title || !range) continue;
+
+
+        const datos = await getFromSheet(range);
+        if (!Array.isArray(datos)) return;
+        datos.shift(); // Eliminar headers
+
+        const questions = [];
+        const choices = [];
+
+        for (const row of datos) {
+          const pregunta = row[0]?.trim() ?? "";
+          const opcionesRaw = row[1]?.trim();
+
+          questions.push(pregunta);
+          choices.push(opcionesRaw ? opcionesRaw.split("/").map(o => o.trim()) : undefined);
+        }
+
+        surveys.push({ title, range, questions, choices });
+      }
+
+      return surveys;
+
+    } catch (error) {
+      console.error("❌ Error al procesar datos de las encuestas:", error);
+    }
+  }
+
+  // * Auxiliares: Check
 
   // Determina si el mensaje es un saludo inicial
   isGreeting(message, to) {
@@ -238,6 +247,7 @@ class MessageHandler {
     await this.handleQuestions(to, 0);
     return true;
   }
+
 }
 
 export default new MessageHandler();
