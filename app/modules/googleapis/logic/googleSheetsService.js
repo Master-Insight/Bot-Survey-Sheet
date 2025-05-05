@@ -1,4 +1,3 @@
-import path from 'path'
 import { google } from 'googleapis'
 import configEnv from '../../../config/env.js'
 
