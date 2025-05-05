@@ -8,66 +8,19 @@ class MessageHandler {
   constructor() {
     this.survey1State = {}; // Guarda paso y respuestas por usuario
     this.init(); // Carga encuestas al arrancar
+    this.pendientes = []
   }
 
   // * METODOS INICIALES Y DE CARGA
 
-  // Carga inicial de encuestas
+  /** Inicializa la clase cargando los datos de encuestas desde Google Sheets
+   * @returns {Promise<void>}
+   */
   async init() {
     try {
       MessageHandler.surveys = await this.getSurveysData();
     } catch (error) {
       console.error('❌ Error al cargar encuestas en init:', error);
-    }
-  }
-
-  // Recarga de encuestas manual
-  static async reloadSurveys() {
-    try {
-      MessageHandler.surveys = await getFromSheet('TPREGUNTAS');
-    } catch (error) {
-      console.error('❌ Error al recargar encuestas:', error);
-    }
-  }
-
-  // Procesamiento para carga de encuestas
-  async getSurveysData() {
-    try {
-      // Obtener configuracion de encuestas
-      const config = await getFromSheet('TCONFIG');
-      if (!Array.isArray(config)) return;
-      config.shift(); // Eliminar headers
-
-      const surveys = [];
-
-      for (const row of config) {
-        const title = row[0]?.trim(); // titulo
-        const range = row[1]?.trim(); // Rango
-        if (!title || !range) continue;
-
-
-        const datos = await getFromSheet(range);
-        if (!Array.isArray(datos)) return;
-        datos.shift(); // Eliminar headers
-
-        const questions = [];
-        const choices = [];
-
-        for (const row of datos) {
-          const pregunta = row[0]?.trim() ?? "";
-          const opcionesRaw = row[1]?.trim();
-
-          questions.push(pregunta);
-          choices.push(opcionesRaw ? opcionesRaw.split("/").map(o => o.trim()) : undefined);
-        }
-
-        surveys.push({ title, range, questions, choices });
-      }
-
-      return surveys;
-
-    } catch (error) {
-      console.error("❌ Error al procesar datos de las encuestas:", error);
     }
   }
 
@@ -96,7 +49,18 @@ class MessageHandler {
       } else if (incomingMessage === "test") {
         await service.sendMessage(sender, "✅ Test");
         await service.markAsRead(message.id);
-        return;
+
+      } else if (incomingMessage === "/recarga") {
+        await MessageHandler.reloadSurveys(sender)
+        await service.markAsRead(message.id);
+
+      } else if (incomingMessage === "/cargar pendientes") {
+        await this.getPendingMessages(sender);
+        await service.markAsRead(message.id);
+
+      } else if (incomingMessage === "/enviar siguiente") {
+        await this.sendNextPendingSurvey(sender);
+        await service.markAsRead(message.id);
       }
 
     } else if (message?.type === 'interactive') { // Captura acciones interactivas (menu)
@@ -201,7 +165,60 @@ class MessageHandler {
     }
   }
 
-  // * Auxiliares
+  // * Auxiliares: Carga de datos
+
+  // Recarga de encuestas manual
+  static async reloadSurveys(to) {
+    try {
+      MessageHandler.surveys = await getFromSheet('TPREGUNTAS');
+      await service.sendMessage(to, "🔁 Recarga completada");
+    } catch (error) {
+      console.error('❌ Error al recargar encuestas:', error);
+    }
+  }
+
+  // Procesamiento para carga de encuestas
+  async getSurveysData() {
+    try {
+      // Obtener configuracion de encuestas
+      const config = await getFromSheet('TCONFIG');
+      if (!Array.isArray(config)) return;
+      config.shift(); // Eliminar headers
+
+      const surveys = [];
+
+      for (const row of config) {
+        const title = row[0]?.trim(); // titulo
+        const range = row[1]?.trim(); // Rango
+        if (!title || !range) continue;
+
+
+        const datos = await getFromSheet(range);
+        if (!Array.isArray(datos)) return;
+        datos.shift(); // Eliminar headers
+
+        const questions = [];
+        const choices = [];
+
+        for (const row of datos) {
+          const pregunta = row[0]?.trim() ?? "";
+          const opcionesRaw = row[1]?.trim();
+
+          questions.push(pregunta);
+          choices.push(opcionesRaw ? opcionesRaw.split("/").map(o => o.trim()) : undefined);
+        }
+
+        surveys.push({ title, range, questions, choices });
+      }
+
+      return surveys;
+
+    } catch (error) {
+      console.error("❌ Error al procesar datos de las encuestas:", error);
+    }
+  }
+
+  // * Auxiliares: Check
 
   // Determina si el mensaje es un saludo inicial
   isGreeting(message, to) {
@@ -215,6 +232,8 @@ class MessageHandler {
 
   // Verifica trigger
   async checkSurveyTrigger(text, to) {
+    console.log("text checkSurveyTrigger: ", text);
+
     if (!MessageHandler.surveys) return false;
 
     const normalizedText = text.toLowerCase().trim();
@@ -237,6 +256,68 @@ class MessageHandler {
 
     await this.handleQuestions(to, 0);
     return true;
+  }
+
+  // * Auxiliares: Tareas Extras
+
+  // Obtiene las filas pendientes de envío desde la hoja 'A enviar'
+  async getPendingMessages(to) {
+    const values = await getFromSheet("'A enviar'!A2:C")
+    if (!Array.isArray(values)) return;
+    // values.shift(); // Eliminar headers
+
+    const pendientes = [];
+    values.forEach((row, index) => {
+      const [telefono, encuesta, estado] = row;
+      if (!estado) {
+        pendientes.push({
+          telefono,
+          encuesta,
+          fila: index + 2 // +2 porque empezamos en A2 y queremos fila absoluta
+        });
+      }
+    });
+
+    this.pendientes = pendientes;
+
+    const resumen = pendientes.map((res, i) => `• Cel: ${res.telefono} - Encuesta: ${res.encuesta}`).join("\n");
+    await service.sendMessage(to, `📃 Pendientes cargados\n${resumen}`);
+
+    console.log(pendientes);
+  }
+
+  // Envía la siguiente encuesta pendiente
+  async sendNextPendingSurvey(to) {
+    if (this.pendientes.length === 0) {
+      await service.sendMessage(to, "✅ No quedan encuestas pendientes.");
+      return;
+    }
+
+    const pendiente = this.pendientes.shift(); // Saca la primera de la cola
+    const { telefono, encuesta, fila } = pendiente;
+
+    const matchedIndex = MessageHandler.surveys.findIndex(s =>
+      encuesta.toLowerCase().trim() === s.title.toLowerCase().trim()
+    );
+
+    if (matchedIndex === -1) {
+      await service.sendMessage(to, `⚠️ Encuesta "${encuesta}" no encontrada para ${telefono}.`);
+      return;
+    }
+
+    // Inicializar estado de usuario
+    this.survey1State[telefono] = {
+      step: 0,
+      answers: [],
+      surveyIndex: matchedIndex,
+      meta: { fila }, // Guardamos info para marcar como enviado después
+    };
+
+    await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
+    await this.handleQuestions(telefono, 0);
+    await service.sendMessage(to, `📨 Encuesta enviada a ${telefono}`);
+
+    // TODO falta poner "enviado"
   }
 }
 
