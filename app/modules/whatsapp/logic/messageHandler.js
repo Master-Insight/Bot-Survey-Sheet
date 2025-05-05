@@ -50,9 +50,12 @@ class MessageHandler {
         await service.markAsRead(message.id);
 
       } else if (incomingMessage === "/recarga") {
-        await this.reloadSurveys(sender)
+        await MessageHandler.reloadSurveys(sender)
         await service.markAsRead(message.id);
 
+      } else if (incomingMessage === "/carga pendientes") {
+        await this.getPendingMessages(sender);
+        await service.markAsRead(message.id);
       }
 
     } else if (message?.type === 'interactive') { // Captura acciones interactivas (menu)
@@ -224,6 +227,8 @@ class MessageHandler {
 
   // Verifica trigger
   async checkSurveyTrigger(text, to) {
+    console.log("text checkSurveyTrigger: ", text);
+
     if (!MessageHandler.surveys) return false;
 
     const normalizedText = text.toLowerCase().trim();
@@ -248,6 +253,26 @@ class MessageHandler {
     return true;
   }
 
+  // * Auxiliares: Tareas Extras
+  async getPendingMessages(to) {
+    const values = await getFromSheet("'A enviar'!A2:B")
+    if (!Array.isArray(values)) return;
+    // values.shift(); // Eliminar headers
+
+    const pendientes = [];
+    values.forEach((row, index) => {
+      const [telefono, encuesta] = row;
+      pendientes.push({
+        telefono,
+        encuesta,
+        fila: index + 2 // +2 porque empezamos en A2 y queremos fila absoluta
+      });
+    });
+
+    await service.sendMessage(to, "📃 Pendientes cargados");
+    console.log(pendientes);
+    return pendientes;
+  }
 }
 
 export default new MessageHandler();
