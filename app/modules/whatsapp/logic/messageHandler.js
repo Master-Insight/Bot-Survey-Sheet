@@ -8,6 +8,7 @@ class MessageHandler {
   constructor() {
     this.survey1State = {}; // Guarda paso y respuestas por usuario
     this.init(); // Carga encuestas al arrancar
+    this.pendientes = []
   }
 
   // * METODOS INICIALES Y DE CARGA
@@ -53,7 +54,7 @@ class MessageHandler {
         await MessageHandler.reloadSurveys(sender)
         await service.markAsRead(message.id);
 
-      } else if (incomingMessage === "/carga pendientes") {
+      } else if (incomingMessage === "/cargar pendientes") {
         await this.getPendingMessages(sender);
         await service.markAsRead(message.id);
       }
@@ -255,23 +256,28 @@ class MessageHandler {
 
   // * Auxiliares: Tareas Extras
   async getPendingMessages(to) {
-    const values = await getFromSheet("'A enviar'!A2:B")
+    const values = await getFromSheet("'A enviar'!A2:C")
     if (!Array.isArray(values)) return;
     // values.shift(); // Eliminar headers
 
     const pendientes = [];
     values.forEach((row, index) => {
-      const [telefono, encuesta] = row;
-      pendientes.push({
-        telefono,
-        encuesta,
-        fila: index + 2 // +2 porque empezamos en A2 y queremos fila absoluta
-      });
+      const [telefono, encuesta, estado] = row;
+      if (!estado) {
+        pendientes.push({
+          telefono,
+          encuesta,
+          fila: index + 2 // +2 porque empezamos en A2 y queremos fila absoluta
+        });
+      }
     });
 
-    await service.sendMessage(to, "📃 Pendientes cargados");
+    this.pendientes = pendientes;
+
+    const resumen = pendientes.map((res, i) => `• Cel: ${res.telefono} - Encuesta: ${res.encuesta}`).join("\n");
+    await service.sendMessage(to, `📃 Pendientes cargados\n${resumen}`);
+
     console.log(pendientes);
-    return pendientes;
   }
 }
 
