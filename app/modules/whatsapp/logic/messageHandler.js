@@ -27,7 +27,10 @@ class MessageHandler {
   // * Lógica principal de entrada de mensajes
 
   async handleIncomingMessage(message, senderInfo) {
+
     const sender = message.from;
+    console.log("survey1State: ", this.survey1State[sender]);
+
     const incomingMessage = message?.text?.body?.toLowerCase()?.trim(); // si mensaje texto lo limpia
 
     if (!sender || !message) return; // seguro
@@ -77,6 +80,8 @@ class MessageHandler {
 
       await service.markAsRead(message.id);
     }
+
+    console.log("survey1State FIN: ", this.survey1State[sender]);
   }
 
   // * MENU
@@ -224,10 +229,14 @@ class MessageHandler {
   isGreeting(message, to) {
     const greetings = ["hola", "holas", "buenas", "buenas tardes", "buenos días"];
 
-    // elimina estado si habia iniciado antes
-    delete this.survey1State[to];
+    const istrue = greetings.includes(message);
 
-    return greetings.includes(message);
+    if (istrue) {
+      // Elimina estado actual si el usuario envía un saludo
+      delete this.survey1State[to];
+    }
+
+    return istrue;
   }
 
   // Verifica trigger
