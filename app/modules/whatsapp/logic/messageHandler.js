@@ -1,4 +1,4 @@
-import { addToSheet, getFromSheet } from "../../googleapis/logic/googleSheetsService.js";
+import { addToSheet, getFromSheet, updateSheetCell } from "../../googleapis/logic/googleSheetsService.js";
 import service from "./service.js";
 
 class MessageHandler {
@@ -313,11 +313,17 @@ class MessageHandler {
       meta: { fila }, // Guardamos info para marcar como enviado después
     };
 
-    await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
-    await this.handleQuestions(telefono, 0);
-    await service.sendMessage(to, `📨 Encuesta enviada a ${telefono}`);
+    try {
+      await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
+      await this.handleQuestions(telefono, 0);
 
-    // TODO falta poner "enviado"
+      await updateSheetCell("ENVIADO ✅", `'A enviar'!C${fila}`); // estoy podria estar al final del ciclo
+      await service.sendMessage(to, `📨 Encuesta enviada a ${telefono} ✅`);
+    } catch (error) {
+      await updateSheetCell("ERROR ❌", `'A enviar'!C${fila}`);
+      await service.sendMessage(to, `📨 Encuesta NO pudo ser enviada a ${telefono} ❌`);
+    }
+
   }
 }
 
