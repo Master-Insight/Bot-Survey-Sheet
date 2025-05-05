@@ -1,4 +1,4 @@
-import { addToSheet, getFromSheet, updateSheetCell } from "../../googleapis/logic/googleSheetsService.js";
+import { addToSheet, batchUpdateSheetCells, getFromSheet, updateSheetCell } from "../../googleapis/logic/googleSheetsService.js";
 import service from "./service.js";
 
 class MessageHandler {
@@ -313,17 +313,38 @@ class MessageHandler {
       meta: { fila }, // Guardamos info para marcar como enviado después
     };
 
+    // Prepara actualización en bloque para columnas C, D y E
+    const now = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
+
     try {
+
       await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
       await this.handleQuestions(telefono, 0);
 
-      await updateSheetCell("ENVIADO ✅", `'A enviar'!C${fila}`); // estoy podria estar al final del ciclo
+      // await updateSheetCell("ENVIADO ✅", `'A enviar'!C${fila}`); // estoy podria estar al final del ciclo
+      await batchUpdateSheetCells([
+        { cell: `'A enviar'!C${fila}`, value: "ENVIADO ✅" },
+        { cell: `'A enviar'!D${fila}`, value: now },
+        { cell: `'A enviar'!E${fila}`, value: "" },
+      ]);
       await service.sendMessage(to, `📨 Encuesta enviada a ${telefono} ✅`);
+
     } catch (error) {
-      await updateSheetCell("ERROR ❌", `'A enviar'!C${fila}`);
+      // await updateSheetCell("ERROR ❌", `'A enviar'!C${fila}`);
+      await batchUpdateSheetCells([
+        { cell: `'A enviar'!C${fila}`, value: "ERROR ❌" },
+        { cell: `'A enviar'!D${fila}`, value: now },
+        { cell: `'A enviar'!E${fila}`, value: error },
+      ]);
       await service.sendMessage(to, `📨 Encuesta NO pudo ser enviada a ${telefono} ❌`);
     }
 
+
+    /* SI CLIENTE ONETSTA SE PUEDE AGREGAR
+    await batchUpdateSheetCells([
+  { cell: `'A enviar'!F${fila}`, value: "COMPLETADA ✅" }
+]);
+*/
   }
 }
 
