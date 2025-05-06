@@ -298,52 +298,14 @@ class MessageHandler {
       return;
     }
 
-    const pendiente = this.pendientes.shift(); // Saca la primera de la cola
-    const { telefono, encuesta, fila } = pendiente;
+    const pendiente = this.pendientes.shift(); // Saca la primera de la cola    
+    const resultado = await this.sendSurveyToUser(pendiente);
 
-    const matchedIndex = MessageHandler.surveys.findIndex(s =>
-      encuesta.toLowerCase().trim() === s.title.toLowerCase().trim()
-    );
+    const msg = resultado.success
+      ? `📨 Encuesta enviada a ${resultado.telefono} ✅`
+      : `⚠️ ${resultado.error} para ${resultado.telefono}`;
 
-    if (matchedIndex === -1) {
-      await service.sendMessage(to, `⚠️ Encuesta "${encuesta}" no encontrada para ${telefono}.`);
-      return;
-    }
-
-    // Inicializar estado de usuario
-    this.survey1State[telefono] = {
-      step: 0,
-      answers: [],
-      surveyIndex: matchedIndex,
-      meta: { fila }, // Guardamos info para marcar como enviado después
-    };
-
-    // Prepara actualización en bloque para columnas C, D y E
-    const now = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
-
-    try {
-
-      await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
-      await this.handleQuestions(telefono, 0);
-
-      // await updateSheetCell("ENVIADO ✅", `'A enviar'!C${fila}`); // estoy podria estar al final del ciclo
-      await batchUpdateSheetCells([
-        { cell: `'A enviar'!C${fila}`, value: "ENVIADO ✅" },
-        { cell: `'A enviar'!D${fila}`, value: now },
-        { cell: `'A enviar'!E${fila}`, value: "" },
-      ]);
-      await service.sendMessage(to, `📨 Encuesta enviada a ${telefono} ✅`);
-
-    } catch (error) {
-      // await updateSheetCell("ERROR ❌", `'A enviar'!C${fila}`);
-      await batchUpdateSheetCells([
-        { cell: `'A enviar'!C${fila}`, value: "ERROR ❌" },
-        { cell: `'A enviar'!D${fila}`, value: now },
-        { cell: `'A enviar'!E${fila}`, value: error },
-      ]);
-      await service.sendMessage(to, `📨 Encuesta NO pudo ser enviada a ${telefono} ❌`);
-    }
-
+    await service.sendMessage(to, msg);
 
     /* SI CLIENTE CONTESTA SE PUEDE AGREGAR ESTO - PERO OJO, si eliminan la fila es para lio
     await batchUpdateSheetCells([
@@ -364,54 +326,61 @@ class MessageHandler {
     for (let i = 0; i < cantidad && this.pendientes.length > 0; i++) {
 
       const pendiente = this.pendientes.shift();
-      const { telefono, encuesta, fila } = pendiente;
+      const resultado = await this.sendSurveyToUser(pendiente);
 
-      const matchedIndex = MessageHandler.surveys.findIndex(s =>
-        encuesta.toLowerCase().trim() === s.title.toLowerCase().trim()
-      );
-
-      if (matchedIndex === -1) {
-        await batchUpdateSheetCells([
-          { cell: `'A enviar'!C${fila}`, value: "NO ENCONTRADA ⚠️" },
-          { cell: `'A enviar'!D${fila}`, value: new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" }) },
-        ]);
-        enviados.push(`⚠️ Encuesta no encontrada para ${telefono}`);
-        continue;
-      }
-
-      // Inicializar estado de usuario
-      this.survey1State[telefono] = {
-        step: 0,
-        answers: [],
-        surveyIndex: matchedIndex,
-        meta: { fila },
-      };
-
-      const now = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
-
-      try {
-        await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
-        await this.handleQuestions(telefono, 0);
-
-        await batchUpdateSheetCells([
-          { cell: `'A enviar'!C${fila}`, value: "ENVIADO ✅" },
-          { cell: `'A enviar'!D${fila}`, value: now },
-          { cell: `'A enviar'!E${fila}`, value: "" },
-        ]);
-
-        enviados.push(`✅ ${telefono}`);
-      } catch (error) {
-        await batchUpdateSheetCells([
-          { cell: `'A enviar'!C${fila}`, value: "ERROR ❌" },
-          { cell: `'A enviar'!D${fila}`, value: now },
-          { cell: `'A enviar'!E${fila}`, value: error.toString().substring(0, 100) }, // Evita errores largos
-        ]);
-        enviados.push(`❌ ${telefono}`);
-      }
+      enviados.push(resultado)
     }
 
-    const resumen = enviados.map(e => `• ${e}`).join("\n");
+    const resumen = enviados.map(e =>
+      e.success
+        ? `✅ ${e.telefono}`
+        : `❌ ${e.telefono} - ${e.error}`
+    ).join("\n");
     await service.sendMessage(to, `📦 Resultado de envío múltiple:\n${resumen}`);
+  }
+
+  // Envia una encuesta y devuelve valores a mostrar
+  async sendSurveyToUser({ telefono, encuesta, fila }) {
+    const matchedIndex = MessageHandler.surveys.findIndex(s =>
+      encuesta.toLowerCase().trim() === s.title.toLowerCase().trim()
+    );
+
+    const now = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
+
+    if (matchedIndex === -1) {
+      await batchUpdateSheetCells([
+        { cell: `'A enviar'!C${fila}`, value: "NO ENCONTRADA ⚠️" },
+        { cell: `'A enviar'!D${fila}`, value: now },
+      ]);
+      return { success: false, telefono, error: "Encuesta no encontrada" };
+    }
+
+    this.survey1State[telefono] = {
+      step: 0,
+      answers: [],
+      surveyIndex: matchedIndex,
+      meta: { fila },
+    };
+
+    try {
+      await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
+      await this.handleQuestions(telefono, 0);
+
+      await batchUpdateSheetCells([
+        { cell: `'A enviar'!C${fila}`, value: "ENVIADO ✅" },
+        { cell: `'A enviar'!D${fila}`, value: now },
+        { cell: `'A enviar'!E${fila}`, value: "" },
+      ]);
+
+      return { success: true, telefono };
+    } catch (error) {
+      await batchUpdateSheetCells([
+        { cell: `'A enviar'!C${fila}`, value: "ERROR ❌" },
+        { cell: `'A enviar'!D${fila}`, value: now },
+        { cell: `'A enviar'!E${fila}`, value: error.toString().substring(0, 100) },
+      ]);
+      return { success: false, telefono, error: error.toString() };
+    }
   }
 }
 
