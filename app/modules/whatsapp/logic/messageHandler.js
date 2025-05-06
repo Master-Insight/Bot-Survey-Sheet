@@ -9,7 +9,7 @@ class MessageHandler {
   constructor() {
     this.survey1State = {}; // Guarda paso y respuestas por usuario
     this.init(); // Carga encuestas al arrancar
-    this.pendientes = []
+    this.pendientes = [] // ! ELIMINAR
   }
 
   // * METODO INICIAL
@@ -18,7 +18,7 @@ class MessageHandler {
     try {
       await SurveyManager.loadSurveys();
     } catch (error) {
-      console.error('❌ Error al cargar encuestas en init:', error);
+      console.error('❌ Error al inicializar encuestas:', error);
     }
   }
 
@@ -26,76 +26,63 @@ class MessageHandler {
   async handleIncomingMessage(message, senderInfo) {
 
     const sender = message.from;
+
     const incomingMessage = message?.text?.body?.toLowerCase()?.trim(); // si mensaje texto lo limpia
 
     if (!sender || !message) return; // seguro
 
-    try {
-      if (message?.type === 'text') {
-        await this.handleTextMessage(sender, incomingMessage, message);
-      } else if (message?.type === 'interactive') {
-        await this.handleInteractiveMessage(sender, message);
+    if (message?.type === 'text') { // Captura Texto plano
+      // 🔍 Revisa si es una frase clave que inicia encuesta
+      const started = await this.checkSurveyTrigger(incomingMessage, sender);
+      if (started) return;
+
+      if (this.isGreeting(incomingMessage, sender)) {
+        await service.sendMessage(sender, "👋 ¡Bienvenido!");
+        await this.sendInitialMenu(sender); // Menu INICIAL
+        await service.markAsRead(message.id);
+
+        // Está respondiendo la encuesta
+      } else if (this.survey1State[sender]) {
+        this.handleQuestions(sender, this.survey1State[sender].step, incomingMessage)
+
+      } else if (incomingMessage === "test") {
+        await service.sendMessage(sender, "✅ Test");
+        await service.markAsRead(message.id);
+
+      } else if (incomingMessage === "/recarga") {
+        await MessageHandler.reloadSurveys(sender)
+        await service.markAsRead(message.id);
+
+      } else if (incomingMessage === "/cargar pendientes") {
+        await this.getPendingMessages(sender);
+        await service.markAsRead(message.id);
+
+      } else if (incomingMessage === "/enviar siguiente") {
+        await this.sendNextPendingSurvey(sender);
+        await service.markAsRead(message.id);
+
+      } else if (incomingMessage.startsWith("/enviar múltiples")) {
+        const partes = incomingMessage.split(" ");
+        const cantidad = parseInt(partes[2]) || 5; // Default: 5 si no se especifica bien
+        await this.sendMultiplePendingSurveys(sender, cantidad);
+        await service.markAsRead(message.id);
       }
-    } catch (error) {
-      console.error(`❌ Error procesando mensaje de ${sender}:`, error);
-      await service.sendMessage(sender, "⚠️ Ocurrió un error al procesar tu mensaje");
-    }
-  }
 
-  // Captura Texto plano
-  async handleTextMessage(sender, messageText, originalMessage) {
-    // 🔍 Revisa si es una frase clave que inicia encuesta
-    const started = await this.checkSurveyTrigger(incomingMessage, sender);
-    if (started) return;
+    } else if (message?.type === 'interactive') { // Captura acciones interactivas (menu)
 
-    if (this.isGreeting(incomingMessage, sender)) {
-      await service.sendMessage(sender, "👋 ¡Bienvenido!");
-      await this.sendInitialMenu(sender); // Menu INICIAL
-      await service.markAsRead(message.id);
+      const optionId = message?.interactive?.button_reply?.id;
+      const optionText = message?.interactive?.button_reply?.title;
 
-      // Está respondiendo la encuesta
-    } else if (this.survey1State[sender]) {
-      this.handleQuestions(sender, this.survey1State[sender].step, incomingMessage)
+      if (this.survey1State[sender]) {
+        const step = this.survey1State[sender].step;
+        await this.handleQuestions(sender, step, optionText);
+      } else {
+        await this.handleMenuOption(sender, optionId);
+      }
 
-    } else if (incomingMessage === "test") {
-      await service.sendMessage(sender, "✅ Test");
-      await service.markAsRead(message.id);
-
-    } else if (incomingMessage === "/recarga") {
-      await MessageHandler.reloadSurveys(sender)
-      await service.markAsRead(message.id);
-
-    } else if (incomingMessage === "/cargar pendientes") {
-      await this.getPendingMessages(sender);
-      await service.markAsRead(message.id);
-
-    } else if (incomingMessage === "/enviar siguiente") {
-      await this.sendNextPendingSurvey(sender);
-      await service.markAsRead(message.id);
-
-    } else if (incomingMessage.startsWith("/enviar múltiples")) {
-      const partes = incomingMessage.split(" ");
-      const cantidad = parseInt(partes[2]) || 5; // Default: 5 si no se especifica bien
-      await this.sendMultiplePendingSurveys(sender, cantidad);
       await service.markAsRead(message.id);
     }
   }
-
-  // Captura acciones interactivas (menu)
-  async handleInteractiveMessage(sender, message) {
-    const optionId = message?.interactive?.button_reply?.id;
-    const optionText = message?.interactive?.button_reply?.title;
-
-    if (this.survey1State[sender]) {
-      const step = this.survey1State[sender].step;
-      await this.handleQuestions(sender, step, optionText);
-    } else {
-      await this.handleMenuOption(sender, optionId);
-    }
-
-    await service.markAsRead(message.id);
-  }
-
 
   // * MENU
 

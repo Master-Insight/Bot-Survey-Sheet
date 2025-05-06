@@ -11,6 +11,8 @@ class SurveyManager {
   // * Carga de encuestas
   static async loadSurveys() {
     try {
+      if (!CONFIG_SHEET) throw new Error("Falta definir ENV - CONFIG_SHEET");
+
       const config = await getFromSheet(CONFIG_SHEET);
       if (!Array.isArray(config)) {
         throw new Error("No se pudo cargar la configuración de encuestas");
