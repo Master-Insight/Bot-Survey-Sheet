@@ -1,5 +1,6 @@
 import configEnv from "../../../../config/env.js";
-import { getFromSheet } from "../../googleapis/logic/googleSheetsService.js";
+import { getFromSheet } from "../../../googleapis/logic/googleSheetsService.js";
+
 import service from "../service.js";
 
 const { CONFIG_SHEET } = configEnv
