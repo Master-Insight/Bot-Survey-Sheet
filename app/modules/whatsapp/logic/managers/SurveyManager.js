@@ -50,7 +50,7 @@ class SurveyManager {
     }
   }
 
-  // * Recarga de encuestas manual
+  // * Recarga de encuestas manual // ! FALTA
   static async reloadSurveys(to, messageId = null) {
     try {
       await this.loadSurveys();
@@ -63,19 +63,19 @@ class SurveyManager {
     }
   }
 
-  // * Obtener encuesta según posición
+  // * Obtener encuesta según posición // ! FALTA
   static getSurveyByIndex(index) {
     return this.surveys[index] || null;
   }
 
-  // * Obtener encuesta según titulo
+  // * Obtener encuesta según titulo // ! FALTA
   static getSurveyByTitle(title) {
     return this.surveys.find(s =>
       s.title.toLowerCase().trim() === title.toLowerCase().trim()
     ) || null;
   }
 
-  // * Verifica si es un "Lanzador" de encuestas
+  // * Verifica si es un "Lanzador" de encuestas 
   static async checkSurveyTrigger(text, to, messageHandler) {
     if (!this.surveys.length) return false;
 
@@ -90,11 +90,13 @@ class SurveyManager {
       surveyIndex: this.surveys.indexOf(survey),
     };
 
+    await service.markAsRead(text.id)
+
     await messageHandler.handleQuestions(to, 0);
     return true;
   }
 
-  // * Menú inicial con botones
+  // * Menú inicial con botones // ! FALTA
   static async sendSurveyMenu(to, messageHandler) {
     if (!this.surveys.length) {
       await service.sendMessage(to, "⚠️ No hay encuestas disponibles");

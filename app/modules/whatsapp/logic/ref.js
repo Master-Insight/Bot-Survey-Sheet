@@ -34,6 +34,8 @@ class MessageHandler {
   //   }
   // }
 
+
+  /* ! ACA ESTOY */
   async handleTextMessage(sender, messageText, originalMessage) {
     // Check survey trigger
     if (await SurveyManager.checkSurveyTrigger(messageText, sender, this)) {
