@@ -20,69 +20,81 @@ class MessageHandler {
     } catch (error) {
       console.error('❌ Error al inicializar encuestas:', error);
     }
+    // ! GUIA !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    finally {
+      console.log("surveys: ", SurveyManager.surveys);
+    }
   }
 
   // * Lógica principal de entrada de mensajes
   async handleIncomingMessage(message, senderInfo) {
 
     const sender = message.from;
+    const incomingMessage = message?.text?.body?.toLowerCase()?.trim(); // limpieza
+    if (!sender || !message) return; // verificación
 
-    const incomingMessage = message?.text?.body?.toLowerCase()?.trim(); // si mensaje texto lo limpia
+    if (message?.type === 'text') {
+      await this.handleTextMessage(sender, incomingMessage, message);
+    } else if (message?.type === 'interactive') {
+      await this.handleInteractiveMessage(sender, message);
+    }
+  }
 
-    if (!sender || !message) return; // seguro
+  // Handler: Texto plano
+  async handleTextMessage(sender, incomingMessage, message) {
+    // 🔍 Revisa si es una frase clave que inicia encuesta
+    const started = await this.checkSurveyTrigger(incomingMessage, sender);
+    if (started) return;
 
-    if (message?.type === 'text') { // Captura Texto plano
-      // 🔍 Revisa si es una frase clave que inicia encuesta
-      const started = await this.checkSurveyTrigger(incomingMessage, sender);
-      if (started) return;
+    if (this.isGreeting(incomingMessage, sender)) {
+      await service.sendMessage(sender, "👋 ¡Bienvenido!");
+      await this.sendInitialMenu(sender); // Menu INICIAL
+      await service.markAsRead(message.id);
 
-      if (this.isGreeting(incomingMessage, sender)) {
-        await service.sendMessage(sender, "👋 ¡Bienvenido!");
-        await this.sendInitialMenu(sender); // Menu INICIAL
-        await service.markAsRead(message.id);
+      // Está respondiendo la encuesta
+    } else if (this.survey1State[sender]) {
+      this.handleQuestions(sender, this.survey1State[sender].step, incomingMessage)
 
-        // Está respondiendo la encuesta
-      } else if (this.survey1State[sender]) {
-        this.handleQuestions(sender, this.survey1State[sender].step, incomingMessage)
+    } else if (incomingMessage === "test") {
+      await service.sendMessage(sender, "✅ Test");
+      await service.markAsRead(message.id);
 
-      } else if (incomingMessage === "test") {
-        await service.sendMessage(sender, "✅ Test");
-        await service.markAsRead(message.id);
+    } else if (incomingMessage === "/recarga") {
+      await MessageHandler.reloadSurveys(sender)
+      await service.markAsRead(message.id);
 
-      } else if (incomingMessage === "/recarga") {
-        await MessageHandler.reloadSurveys(sender)
-        await service.markAsRead(message.id);
+    } else if (incomingMessage === "/cargar pendientes") {
+      await this.getPendingMessages(sender);
+      await service.markAsRead(message.id);
 
-      } else if (incomingMessage === "/cargar pendientes") {
-        await this.getPendingMessages(sender);
-        await service.markAsRead(message.id);
+    } else if (incomingMessage === "/enviar siguiente") {
+      await this.sendNextPendingSurvey(sender);
+      await service.markAsRead(message.id);
 
-      } else if (incomingMessage === "/enviar siguiente") {
-        await this.sendNextPendingSurvey(sender);
-        await service.markAsRead(message.id);
-
-      } else if (incomingMessage.startsWith("/enviar múltiples")) {
-        const partes = incomingMessage.split(" ");
-        const cantidad = parseInt(partes[2]) || 5; // Default: 5 si no se especifica bien
-        await this.sendMultiplePendingSurveys(sender, cantidad);
-        await service.markAsRead(message.id);
-      }
-
-    } else if (message?.type === 'interactive') { // Captura acciones interactivas (menu)
-
-      const optionId = message?.interactive?.button_reply?.id;
-      const optionText = message?.interactive?.button_reply?.title;
-
-      if (this.survey1State[sender]) {
-        const step = this.survey1State[sender].step;
-        await this.handleQuestions(sender, step, optionText);
-      } else {
-        await this.handleMenuOption(sender, optionId);
-      }
-
+    } else if (incomingMessage.startsWith("/enviar múltiples")) {
+      const partes = incomingMessage.split(" ");
+      const cantidad = parseInt(partes[2]) || 5; // Default: 5 si no se especifica bien
+      await this.sendMultiplePendingSurveys(sender, cantidad);
       await service.markAsRead(message.id);
     }
   }
+
+  // Handler: Acciones Interactivas (menu)
+  async handleInteractiveMessage(sender, message) {
+    const optionId = message?.interactive?.button_reply?.id;
+    const optionText = message?.interactive?.button_reply?.title;
+
+    if (this.survey1State[sender]) {
+      const step = this.survey1State[sender].step;
+      await this.handleQuestions(sender, step, optionText);
+    } else {
+      await this.handleMenuOption(sender, optionId);
+    }
+
+    await service.markAsRead(message.id);
+  }
+
+
 
   // * MENU
 
@@ -179,47 +191,6 @@ class MessageHandler {
       await service.sendMessage(to, "🔁 Recarga completada");
     } catch (error) {
       console.error('❌ Error al recargar encuestas:', error);
-    }
-  }
-
-  // Procesamiento para carga de encuestas
-  async getSurveysData() {
-    try {
-      // Obtener configuracion de encuestas
-      const config = await getFromSheet('TCONFIG');
-      if (!Array.isArray(config)) return;
-      config.shift(); // Eliminar headers
-
-      const surveys = [];
-
-      for (const row of config) {
-        const title = row[0]?.trim(); // titulo
-        const range = row[1]?.trim(); // Rango
-        if (!title || !range) continue;
-
-
-        const datos = await getFromSheet(range);
-        if (!Array.isArray(datos)) return;
-        datos.shift(); // Eliminar headers
-
-        const questions = [];
-        const choices = [];
-
-        for (const row of datos) {
-          const pregunta = row[0]?.trim() ?? "";
-          const opcionesRaw = row[1]?.trim();
-
-          questions.push(pregunta);
-          choices.push(opcionesRaw ? opcionesRaw.split("/").map(o => o.trim()) : undefined);
-        }
-
-        surveys.push({ title, range, questions, choices });
-      }
-
-      return surveys;
-
-    } catch (error) {
-      console.error("❌ Error al procesar datos de las encuestas:", error);
     }
   }
 

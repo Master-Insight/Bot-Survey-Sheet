@@ -8,31 +8,31 @@ class MessageHandler {
     this.init();
   }
 
-  async init() {
-    try {
-      await SurveyManager.loadSurveys();
-    } catch (error) {
-      console.error('❌ Error al inicializar encuestas:', error);
-    }
-  }
+  // async init() {
+  //   try {
+  //     await SurveyManager.loadSurveys();
+  //   } catch (error) {
+  //     console.error('❌ Error al inicializar encuestas:', error);
+  //   }
+  // }
 
-  async handleIncomingMessage(message, senderInfo) {
-    const sender = message.from;
-    const incomingMessage = message?.text?.body?.toLowerCase()?.trim();
+  // async handleIncomingMessage(message, senderInfo) {
+  //   const sender = message.from;
+  //   const incomingMessage = message?.text?.body?.toLowerCase()?.trim();
 
-    if (!sender || !message) return;
+  //   if (!sender || !message) return;
 
-    try {
-      if (message?.type === 'text') {
-        await this.handleTextMessage(sender, incomingMessage, message);
-      } else if (message?.type === 'interactive') {
-        await this.handleInteractiveMessage(sender, message);
-      }
-    } catch (error) {
-      console.error(`❌ Error procesando mensaje de ${sender}:`, error);
-      await service.sendMessage(sender, "⚠️ Ocurrió un error al procesar tu mensaje");
-    }
-  }
+  //   try {
+  //     if (message?.type === 'text') {
+  //       await this.handleTextMessage(sender, incomingMessage, message);
+  //     } else if (message?.type === 'interactive') {
+  //       await this.handleInteractiveMessage(sender, message);
+  //     }
+  //   } catch (error) {
+  //     console.error(`❌ Error procesando mensaje de ${sender}:`, error);
+  //     await service.sendMessage(sender, "⚠️ Ocurrió un error al procesar tu mensaje");
+  //   }
+  // }
 
   async handleTextMessage(sender, messageText, originalMessage) {
     // Check survey trigger
