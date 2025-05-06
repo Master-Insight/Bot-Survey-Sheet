@@ -11,11 +11,8 @@ class MessageHandler {
     this.pendientes = []
   }
 
-  // * METODOS INICIALES Y DE CARGA
-
-  /** Inicializa la clase cargando los datos de encuestas desde Google Sheets
-   * @returns {Promise<void>}
-   */
+  // * METODO INICIAL
+  // Inicializa la clase cargando los datos de encuestas desde Google Sheets
   async init() {
     try {
       MessageHandler.surveys = await this.getSurveysData();
@@ -25,7 +22,6 @@ class MessageHandler {
   }
 
   // * Lógica principal de entrada de mensajes
-
   async handleIncomingMessage(message, senderInfo) {
 
     const sender = message.from;
@@ -63,6 +59,10 @@ class MessageHandler {
 
       } else if (incomingMessage === "/enviar siguiente") {
         await this.sendNextPendingSurvey(sender);
+        await service.markAsRead(message.id);
+
+      } else if (incomingMessage === "/enviar multiples") {
+        await this.sendMultiplePendingSurveys(sender, 5);
         await service.markAsRead(message.id);
       }
 
@@ -298,7 +298,7 @@ class MessageHandler {
   // Envía la siguiente encuesta pendiente
   async sendNextPendingSurvey(to) {
     if (this.pendientes.length === 0) {
-      await service.sendMessage(to, "✅ No quedan encuestas pendientes.");
+      await service.sendMessage(to, "✅ No hay encuestas pendientes para enviar.");
       return;
     }
 
@@ -349,11 +349,73 @@ class MessageHandler {
     }
 
 
-    /* SI CLIENTE ONETSTA SE PUEDE AGREGAR
+    /* SI CLIENTE CONTESTA SE PUEDE AGREGAR ESTO - PERO OJO, si eliminan la fila es para lio
     await batchUpdateSheetCells([
-  { cell: `'A enviar'!F${fila}`, value: "COMPLETADA ✅" }
-]);
+      { cell: `'A enviar'!F${fila}`, value: "COMPLETADA ✅" }
+    ] );
 */
+  }
+
+  // Envía múltiples encuestas pendientes (máximo definido por parámetro)
+  async sendMultiplePendingSurveys(to, cantidad = 5) {
+    if (this.pendientes.length === 0) {
+      await service.sendMessage(to, "✅ No hay encuestas pendientes para enviar.");
+      return;
+    };
+
+    const enviados = [];
+
+    for (let i = 0; i < cantidad && this.pendientes.length > 0; i++) {
+
+      const pendiente = this.pendientes.shift();
+      const { telefono, encuesta, fila } = pendiente;
+
+      const matchedIndex = MessageHandler.surveys.findIndex(s =>
+        encuesta.toLowerCase().trim() === s.title.toLowerCase().trim()
+      );
+
+      if (matchedIndex === -1) {
+        await batchUpdateSheetCells([
+          { cell: `'A enviar'!C${fila}`, value: "NO ENCONTRADA ⚠️" },
+          { cell: `'A enviar'!D${fila}`, value: new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" }) },
+        ]);
+        enviados.push(`⚠️ Encuesta no encontrada para ${telefono}`);
+        continue;
+      }
+
+      // Inicializar estado de usuario
+      this.survey1State[telefono] = {
+        step: 0,
+        answers: [],
+        surveyIndex: matchedIndex,
+        meta: { fila },
+      };
+
+      const now = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
+
+      try {
+        await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
+        await this.handleQuestions(telefono, 0);
+
+        await batchUpdateSheetCells([
+          { cell: `'A enviar'!C${fila}`, value: "ENVIADO ✅" },
+          { cell: `'A enviar'!D${fila}`, value: now },
+          { cell: `'A enviar'!E${fila}`, value: "" },
+        ]);
+
+        enviados.push(`✅ ${telefono}`);
+      } catch (error) {
+        await batchUpdateSheetCells([
+          { cell: `'A enviar'!C${fila}`, value: "ERROR ❌" },
+          { cell: `'A enviar'!D${fila}`, value: now },
+          { cell: `'A enviar'!E${fila}`, value: error.toString().substring(0, 100) }, // Evita errores largos
+        ]);
+        enviados.push(`❌ ${telefono}`);
+      }
+    }
+
+    const resumen = enviados.map(e => `• ${e}`).join("\n");
+    await service.sendMessage(to, `📦 Resultado de envío múltiple:\n${resumen}`);
   }
 }
 
