@@ -1,7 +1,13 @@
 import { google } from 'googleapis'
 import configEnv from '../../../config/env.js'
 
-const { GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY, GOOGLE_SHEETS_ID } = configEnv
+const {
+  GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  GOOGLE_PRIVATE_KEY,
+  GOOGLE_SHEETS_ID,
+  ANSWERS_SHEET,
+  PENDING_SHEET
+} = configEnv
 
 // 🛡️ Crea el authClient usando JWT y claves desde variables de entorno
 // Auth global, se usa cuando el cliente de Google siempre es el mismo, sino se pasa en las peticiones
@@ -22,7 +28,7 @@ const sheets = google.sheets({ version: 'v4', auth })
  * @param {string} [spreadsheetId=GOOGLE_SHEETS_ID] - ID del documento de Google Sheets.
  * @returns {Promise<string>} - Mensaje de confirmación.
  */
-export async function addToSheet(data, range = 'answers', spreadsheetId = GOOGLE_SHEETS_ID) {
+export async function addToSheet(data, range = ANSWERS_SHEET, spreadsheetId = GOOGLE_SHEETS_ID) {
   try {
     await sheets.spreadsheets.values.append({
       spreadsheetId,
