@@ -25,7 +25,6 @@ class MessageHandler {
   async handleIncomingMessage(message, senderInfo) {
 
     const sender = message.from;
-    console.log("survey1State: ", this.survey1State[sender]);
 
     const incomingMessage = message?.text?.body?.toLowerCase()?.trim(); // si mensaje texto lo limpia
 
@@ -82,8 +81,6 @@ class MessageHandler {
 
       await service.markAsRead(message.id);
     }
-
-    console.log("survey1State FIN: ", this.survey1State[sender]);
   }
 
   // * MENU
@@ -243,7 +240,6 @@ class MessageHandler {
 
   // Verifica trigger
   async checkSurveyTrigger(text, to) {
-    console.log("text checkSurveyTrigger: ", text);
 
     if (!MessageHandler.surveys) return false;
 
@@ -293,8 +289,6 @@ class MessageHandler {
 
     const resumen = pendientes.map((res, i) => `• Cel: ${res.telefono} - Encuesta: ${res.encuesta}`).join("\n");
     await service.sendMessage(to, `📃 Pendientes cargados\n${resumen}`);
-
-    console.log(pendientes);
   }
 
   // Envía la siguiente encuesta pendiente
