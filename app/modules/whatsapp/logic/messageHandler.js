@@ -61,8 +61,10 @@ class MessageHandler {
         await this.sendNextPendingSurvey(sender);
         await service.markAsRead(message.id);
 
-      } else if (incomingMessage === "/enviar multiples") {
-        await this.sendMultiplePendingSurveys(sender, 5);
+      } else if (incomingMessage.startsWith("/enviar múltiples")) {
+        const partes = incomingMessage.split(" ");
+        const cantidad = parseInt(partes[2]) || 5; // Default: 5 si no se especifica bien
+        await this.sendMultiplePendingSurveys(sender, cantidad);
         await service.markAsRead(message.id);
       }
 
