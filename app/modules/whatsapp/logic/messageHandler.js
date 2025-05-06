@@ -1,4 +1,4 @@
-import { addToSheet, getFromSheet } from "../../googleapis/logic/googleSheetsService.js";
+import { addToSheet, batchUpdateSheetCells, getFromSheet, updateSheetCell } from "../../googleapis/logic/googleSheetsService.js";
 import service from "./service.js";
 
 class MessageHandler {
@@ -11,11 +11,8 @@ class MessageHandler {
     this.pendientes = []
   }
 
-  // * METODOS INICIALES Y DE CARGA
-
-  /** Inicializa la clase cargando los datos de encuestas desde Google Sheets
-   * @returns {Promise<void>}
-   */
+  // * METODO INICIAL
+  // Inicializa la clase cargando los datos de encuestas desde Google Sheets
   async init() {
     try {
       MessageHandler.surveys = await this.getSurveysData();
@@ -25,9 +22,10 @@ class MessageHandler {
   }
 
   // * Lógica principal de entrada de mensajes
-
   async handleIncomingMessage(message, senderInfo) {
+
     const sender = message.from;
+
     const incomingMessage = message?.text?.body?.toLowerCase()?.trim(); // si mensaje texto lo limpia
 
     if (!sender || !message) return; // seguro
@@ -60,6 +58,12 @@ class MessageHandler {
 
       } else if (incomingMessage === "/enviar siguiente") {
         await this.sendNextPendingSurvey(sender);
+        await service.markAsRead(message.id);
+
+      } else if (incomingMessage.startsWith("/enviar múltiples")) {
+        const partes = incomingMessage.split(" ");
+        const cantidad = parseInt(partes[2]) || 5; // Default: 5 si no se especifica bien
+        await this.sendMultiplePendingSurveys(sender, cantidad);
         await service.markAsRead(message.id);
       }
 
@@ -224,15 +228,18 @@ class MessageHandler {
   isGreeting(message, to) {
     const greetings = ["hola", "holas", "buenas", "buenas tardes", "buenos días"];
 
-    // elimina estado si habia iniciado antes
-    delete this.survey1State[to];
+    const istrue = greetings.includes(message);
 
-    return greetings.includes(message);
+    if (istrue) {
+      // Elimina estado actual si el usuario envía un saludo
+      delete this.survey1State[to];
+    }
+
+    return istrue;
   }
 
   // Verifica trigger
   async checkSurveyTrigger(text, to) {
-    console.log("text checkSurveyTrigger: ", text);
 
     if (!MessageHandler.surveys) return false;
 
@@ -282,42 +289,98 @@ class MessageHandler {
 
     const resumen = pendientes.map((res, i) => `• Cel: ${res.telefono} - Encuesta: ${res.encuesta}`).join("\n");
     await service.sendMessage(to, `📃 Pendientes cargados\n${resumen}`);
-
-    console.log(pendientes);
   }
 
   // Envía la siguiente encuesta pendiente
   async sendNextPendingSurvey(to) {
     if (this.pendientes.length === 0) {
-      await service.sendMessage(to, "✅ No quedan encuestas pendientes.");
+      await service.sendMessage(to, "✅ No hay encuestas pendientes para enviar.");
       return;
     }
 
-    const pendiente = this.pendientes.shift(); // Saca la primera de la cola
-    const { telefono, encuesta, fila } = pendiente;
+    const pendiente = this.pendientes.shift(); // Saca la primera de la cola    
+    const resultado = await this.sendSurveyToUser(pendiente);
 
+    const msg = resultado.success
+      ? `📨 Encuesta enviada a ${resultado.telefono} ✅`
+      : `⚠️ ${resultado.error} para ${resultado.telefono}`;
+
+    await service.sendMessage(to, msg);
+
+    /* SI CLIENTE CONTESTA SE PUEDE AGREGAR ESTO - PERO OJO, si eliminan la fila es para lio
+    await batchUpdateSheetCells([
+      { cell: `'A enviar'!F${fila}`, value: "COMPLETADA ✅" }
+    ] );
+*/
+  }
+
+  // Envía múltiples encuestas pendientes (máximo definido por parámetro)
+  async sendMultiplePendingSurveys(to, cantidad = 5) {
+    if (this.pendientes.length === 0) {
+      await service.sendMessage(to, "✅ No hay encuestas pendientes para enviar.");
+      return;
+    };
+
+    const enviados = [];
+
+    for (let i = 0; i < cantidad && this.pendientes.length > 0; i++) {
+
+      const pendiente = this.pendientes.shift();
+      const resultado = await this.sendSurveyToUser(pendiente);
+
+      enviados.push(resultado)
+    }
+
+    const resumen = enviados.map(e =>
+      e.success
+        ? `✅ ${e.telefono}`
+        : `❌ ${e.telefono} - ${e.error}`
+    ).join("\n");
+    await service.sendMessage(to, `📦 Resultado de envío múltiple:\n${resumen}`);
+  }
+
+  // Envia una encuesta y devuelve valores a mostrar
+  async sendSurveyToUser({ telefono, encuesta, fila }) {
     const matchedIndex = MessageHandler.surveys.findIndex(s =>
       encuesta.toLowerCase().trim() === s.title.toLowerCase().trim()
     );
 
+    const now = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
+
     if (matchedIndex === -1) {
-      await service.sendMessage(to, `⚠️ Encuesta "${encuesta}" no encontrada para ${telefono}.`);
-      return;
+      await batchUpdateSheetCells([
+        { cell: `'A enviar'!C${fila}`, value: "NO ENCONTRADA ⚠️" },
+        { cell: `'A enviar'!D${fila}`, value: now },
+      ]);
+      return { success: false, telefono, error: "Encuesta no encontrada" };
     }
 
-    // Inicializar estado de usuario
     this.survey1State[telefono] = {
       step: 0,
       answers: [],
       surveyIndex: matchedIndex,
-      meta: { fila }, // Guardamos info para marcar como enviado después
+      meta: { fila },
     };
 
-    await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
-    await this.handleQuestions(telefono, 0);
-    await service.sendMessage(to, `📨 Encuesta enviada a ${telefono}`);
+    try {
+      await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
+      await this.handleQuestions(telefono, 0);
 
-    // TODO falta poner "enviado"
+      await batchUpdateSheetCells([
+        { cell: `'A enviar'!C${fila}`, value: "ENVIADO ✅" },
+        { cell: `'A enviar'!D${fila}`, value: now },
+        { cell: `'A enviar'!E${fila}`, value: "" },
+      ]);
+
+      return { success: true, telefono };
+    } catch (error) {
+      await batchUpdateSheetCells([
+        { cell: `'A enviar'!C${fila}`, value: "ERROR ❌" },
+        { cell: `'A enviar'!D${fila}`, value: now },
+        { cell: `'A enviar'!E${fila}`, value: error.toString().substring(0, 100) },
+      ]);
+      return { success: false, telefono, error: error.toString() };
+    }
   }
 }
 
