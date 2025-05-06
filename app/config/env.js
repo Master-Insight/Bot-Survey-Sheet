@@ -14,8 +14,13 @@ const configEnv = {
 
   // GOOGLE API
   GOOGLE_SERVICE_ACCOUNT_EMAIL: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL, // Email de servicio
-  GOOGLE_SHEETS_ID: process.env.GOOGLE_SHEETS_ID, // Planilla base Sheets
   GOOGLE_PRIVATE_KEY: process.env.GOOGLE_PRIVATE_KEY, // token
+
+  // SHEETS RANGES
+  GOOGLE_SHEETS_ID: process.env.GOOGLE_SHEETS_ID, // Planilla base Sheets
+  CONFIG_SHEET: process.env.CONFIG_SHEET, // rango de la configuracion de la preguntas - incluye encabezado
+  ANSWERS_SHEET: process.env.ANSWERS_SHEET, // rango de las respuestas - incluye encabezado
+  PENDING_SHEET: process.env.PENDING_SHEET, // rango de las encuentas pendientes a enviar - incluye encabezado
 
   // OPEN AI
   CHAT_GPT_API_KEY: process.env.CHAT_GPT_API_KEY, // token
