@@ -53,16 +53,21 @@ class MessageHandler {
 
     // Está respondiendo la encuesta
     if (this.surveyState[sender]) { this.handleSurveyResponse(sender, this.surveyState[sender].step, messageText); return; }
-    //handleQuestions
-    if (messageText === "test") {
-      await service.sendMessage(sender, "✅ Test");
-      await service.markAsRead(originalMessage.id);
 
-    } else if (messageText === "/recarga") {
-      await MessageHandler.reloadSurveys(sender)
-      await service.markAsRead(originalMessage.id);
+    // Comandos administrativos
+    const commandHandlers = {
+      "test": () => this.handleTestCommand(sender, originalMessage.id),
+      "/recarga": () => SurveyManager.reloadSurveys(sender, originalMessage.id),
+      // Los comandos de pendientes se moverán al PendingManager
 
-    } else if (messageText === "/cargar pendientes") {
+    };
+
+    const handler = commandHandlers[messageText];
+    if (handler) {
+      await handler();
+    }
+
+    if (messageText === "/cargar pendientes") {
       await this.getPendingMessages(sender);
       await service.markAsRead(originalMessage.id);
 
@@ -195,17 +200,15 @@ class MessageHandler {
   // ? ------------------------------------------------------
   // ? ******************************************************
 
-  // * Auxiliares: Carga de datos
-
-  // Recarga de encuestas manual
-  static async reloadSurveys(to) {
-    try {
-      MessageHandler.surveys = await getFromSheet('TPREGUNTAS');
-      await service.sendMessage(to, "🔁 Recarga completada");
-    } catch (error) {
-      console.error('❌ Error al recargar encuestas:', error);
-    }
+  // Testeo de comandos
+  async handleTestCommand(to, messageId) {
+    await service.sendMessage(to, "✅ Test");
+    await service.markAsRead(messageId);
   }
+
+  // ? ******************************************************
+  // ? ------------------------------------------------------
+  // ? ******************************************************
 
   // * Auxiliares: Tareas Extras
 

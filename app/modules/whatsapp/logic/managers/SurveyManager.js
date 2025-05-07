@@ -52,7 +52,7 @@ class SurveyManager {
     }
   }
 
-  // Recarga de encuestas manual // ! FALTA
+  // Recarga de encuestas manual
   static async reloadSurveys(to, messageId = null) {
     try {
       await this.loadSurveys();
