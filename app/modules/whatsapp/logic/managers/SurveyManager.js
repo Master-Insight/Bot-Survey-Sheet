@@ -80,7 +80,7 @@ class SurveyManager {
   // * VERIFICADORES 
 
   // Verifica si es un "Lanzador" de encuestas  // ! FALTA
-  static async checkSurveyTrigger(text, to, messageHandler) {
+  static async checkSurveyTrigger(text, messageId, to, messageHandler) {
     if (!this.surveys.length) return false;
 
     const normalizedText = text.toLowerCase().trim();
@@ -94,7 +94,7 @@ class SurveyManager {
       surveyIndex: this.surveys.indexOf(survey),
     };
 
-    await service.markAsRead(text.id)
+    await service.markAsRead(messageId)
 
     console.log("to: ", to);
     console.log(text);

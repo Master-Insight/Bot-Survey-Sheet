@@ -46,7 +46,7 @@ class MessageHandler {
   async handleTextMessage(sender, messageText, originalMessage) {
 
     // 🔍 Revisa Lanzadores // ! ME QUEDE ACA - ME QUEDE ACA - ME QUEDE ACA
-    if (await SurveyManager.checkSurveyTrigger(messageText, sender, this)) { return; };
+    if (await SurveyManager.checkSurveyTrigger(messageText, originalMessage.id, sender, this)) { return; };
 
     // Saludo inicial
     if (this.isGreeting(messageText, sender)) { await this.handleGreeting(sender, originalMessage.id); return; }
