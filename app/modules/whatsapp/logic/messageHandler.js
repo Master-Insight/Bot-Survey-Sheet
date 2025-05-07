@@ -12,8 +12,8 @@ class MessageHandler {
     this.pendientes = [] // ! ELIMINAR
   }
 
-  // * METODO INICIAL // ! LOG
-  // Inicializa la clase cargando los datos de encuestas desde Google Sheets
+  // * METODO INICIAL
+  // ! LOG Inicializa la clase cargando los datos de encuestas desde Google Sheets
   async init() {
     try {
       await SurveyManager.loadSurveys();
@@ -31,6 +31,8 @@ class MessageHandler {
 
     const sender = message.from;
     const incomingMessage = message?.text?.body?.toLowerCase()?.trim(); // limpieza
+    console.log(incomingMessage);
+
     if (!sender || !message) return; // verificación
 
     if (message?.type === 'text') {
@@ -41,42 +43,69 @@ class MessageHandler {
   }
 
   // Handler: Texto plano
-  async handleTextMessage(sender, messageText, message) {
+  async handleTextMessage(sender, messageText, originalMessage) {
+
     // 🔍 Revisa Lanzadores
     if (await SurveyManager.checkSurveyTrigger(messageText, sender, this)) { return; };
 
-    if (this.isGreeting(messageText, sender)) {
-      await service.sendMessage(sender, "👋 ¡Bienvenido!");
-      await this.sendInitialMenu(sender); // Menu INICIAL
-      await service.markAsRead(message.id);
+    // Saludo inicial
+    if (this.isGreeting(messageText, sender)) { await this.handleGreeting(sender, originalMessage.id); return; }
 
-      // Está respondiendo la encuesta
-    } else if (this.survey1State[sender]) {
+    // Está respondiendo la encuesta
+    if (this.survey1State[sender]) {
       this.handleQuestions(sender, this.survey1State[sender].step, messageText)
 
     } else if (messageText === "test") {
       await service.sendMessage(sender, "✅ Test");
-      await service.markAsRead(message.id);
+      await service.markAsRead(originalMessage.id);
 
     } else if (messageText === "/recarga") {
       await MessageHandler.reloadSurveys(sender)
-      await service.markAsRead(message.id);
+      await service.markAsRead(originalMessage.id);
 
     } else if (messageText === "/cargar pendientes") {
       await this.getPendingMessages(sender);
-      await service.markAsRead(message.id);
+      await service.markAsRead(originalMessage.id);
 
     } else if (messageText === "/enviar siguiente") {
       await this.sendNextPendingSurvey(sender);
-      await service.markAsRead(message.id);
+      await service.markAsRead(originalMessage.id);
 
     } else if (messageText.startsWith("/enviar múltiples")) {
       const partes = messageText.split(" ");
       const cantidad = parseInt(partes[2]) || 5; // Default: 5 si no se especifica bien
       await this.sendMultiplePendingSurveys(sender, cantidad);
-      await service.markAsRead(message.id);
+      await service.markAsRead(originalMessage.id);
     }
   }
+
+  // * Auxiliares: Flujo
+
+  // Determina si el mensaje es un saludo inicial
+  isGreeting(message, to) {
+    const greetings = ["hola", "holas", "buenas", "buenas tardes", "buenos días"];
+
+    const istrue = greetings.includes(message);
+
+    // Elimina estado actual si el usuario envía un saludo
+    if (istrue) { delete this.survey1State[to]; }
+
+    return istrue;
+  }
+
+  // Saludo Inicial
+  async handleGreeting(to, messageId) {
+    await service.sendMessage(to, "👋 ¡Bienvenido!");
+    await SurveyManager.sendSurveyMenu(to, this);
+    if (messageId) await service.markAsRead(messageId);
+  }
+
+
+
+  // ? ******************************************************
+  // ? ------------------------------------------------------
+  // ? ******************************************************
+
 
   // Handler: Acciones Interactivas (menu)
   async handleInteractiveMessage(sender, message) {
@@ -93,23 +122,7 @@ class MessageHandler {
     await service.markAsRead(message.id);
   }
 
-
-
   // * MENU
-
-  // Menú inicial con botones
-  async sendInitialMenu(to) {
-
-    // Si existen encuestas optiene las opciones
-    if (!MessageHandler.surveys) return;
-    const buttons = MessageHandler.surveys.map((survey, i) => ({
-      type: 'reply',
-      reply: { id: `survey_${i}`, title: survey.title, }
-    }))
-
-    const menuTitle = "📋 Elige una Opción";
-    await service.sendInteractiveButtons(to, menuTitle, buttons);
-  }
 
   // Lógica según opción de menú
   async handleMenuOption(to, optionId) {
@@ -193,21 +206,7 @@ class MessageHandler {
     }
   }
 
-  // * Auxiliares: Check
 
-  // Determina si el mensaje es un saludo inicial
-  isGreeting(message, to) {
-    const greetings = ["hola", "holas", "buenas", "buenas tardes", "buenos días"];
-
-    const istrue = greetings.includes(message);
-
-    if (istrue) {
-      // Elimina estado actual si el usuario envía un saludo
-      delete this.survey1State[to];
-    }
-
-    return istrue;
-  }
 
   // * Auxiliares: Tareas Extras
 

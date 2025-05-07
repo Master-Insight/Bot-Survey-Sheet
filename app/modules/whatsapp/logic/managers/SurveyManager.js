@@ -8,7 +8,9 @@ const { CONFIG_SHEET } = configEnv
 class SurveyManager {
   static surveys = [];
 
-  // * Carga de encuestas
+  // * LECTURA Y CARGA DE ENCUESTAS
+
+  // Carga de encuestas
   static async loadSurveys() {
     try {
       if (!CONFIG_SHEET) throw new Error("Falta definir ENV - CONFIG_SHEET");
@@ -50,7 +52,7 @@ class SurveyManager {
     }
   }
 
-  // * Recarga de encuestas manual // ! FALTA
+  // Recarga de encuestas manual // ! FALTA
   static async reloadSurveys(to, messageId = null) {
     try {
       await this.loadSurveys();
@@ -63,19 +65,21 @@ class SurveyManager {
     }
   }
 
-  // * Obtener encuesta según posición // ! FALTA
+  // Obtener encuesta según posición // ! FALTA
   static getSurveyByIndex(index) {
     return this.surveys[index] || null;
   }
 
-  // * Obtener encuesta según titulo // ! FALTA
+  // Obtener encuesta según titulo // ! FALTA
   static getSurveyByTitle(title) {
     return this.surveys.find(s =>
       s.title.toLowerCase().trim() === title.toLowerCase().trim()
     ) || null;
   }
 
-  // * Verifica si es un "Lanzador" de encuestas 
+  // * VERIFICADORES 
+
+  // Verifica si es un "Lanzador" de encuestas  // ! FALTA
   static async checkSurveyTrigger(text, to, messageHandler) {
     if (!this.surveys.length) return false;
 
@@ -96,13 +100,13 @@ class SurveyManager {
     return true;
   }
 
-  // * Menú inicial con botones // ! FALTA
-  static async sendSurveyMenu(to, messageHandler) {
-    if (!this.surveys.length) {
-      await service.sendMessage(to, "⚠️ No hay encuestas disponibles");
-      return;
-    }
+  // * MENUS
 
+  // Menú inicial con botones
+  static async sendSurveyMenu(to, messageHandler) {
+    if (!this.surveys.length) { await service.sendMessage(to, "⚠️ No hay encuestas disponibles"); return; }
+
+    // Crea botones en base a "Surveys"
     const buttons = this.surveys.map((survey, i) => ({
       type: 'reply',
       reply: { id: `survey_${i}`, title: survey.title }
