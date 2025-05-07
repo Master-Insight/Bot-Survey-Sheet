@@ -1,5 +1,5 @@
-import { addToSheet, batchUpdateSheetCells, getFromSheet, updateSheetCell } from "../../googleapis/logic/googleSheetsService.js";
-import service from "./service.js";
+import { addToSheet, batchUpdateSheetCells, getFromSheet, updateSheetCell } from "../modules/googleapis/logic/googleSheetsService.js";
+import service from "../modules/whatsapp/logic/service.js";
 
 class MessageHandler {
   // Variable estática para evitar recargar preguntas por cada instancia
