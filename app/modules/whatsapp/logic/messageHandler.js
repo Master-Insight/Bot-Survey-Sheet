@@ -45,17 +45,16 @@ class MessageHandler {
   // Handler: Texto plano
   async handleTextMessage(sender, messageText, originalMessage) {
 
-    // 🔍 Revisa Lanzadores // ! ME QUEDE ACA - ME QUEDE ACA - ME QUEDE ACA
+    // 🔍 Revisa Lanzadores
     if (await SurveyManager.checkSurveyTrigger(messageText, originalMessage.id, sender, this)) { return; };
 
     // Saludo inicial
     if (this.isGreeting(messageText, sender)) { await this.handleGreeting(sender, originalMessage.id); return; }
 
     // Está respondiendo la encuesta
-    if (this.surveyState[sender]) {
-      this.handleQuestions(sender, this.surveyState[sender].step, messageText)
-
-    } else if (messageText === "test") {
+    if (this.surveyState[sender]) { this.handleSurveyResponse(sender, this.surveyState[sender].step, messageText); return; }
+    //handleQuestions
+    if (messageText === "test") {
       await service.sendMessage(sender, "✅ Test");
       await service.markAsRead(originalMessage.id);
 
@@ -86,7 +85,7 @@ class MessageHandler {
 
     if (this.surveyState[sender]) {
       const step = this.surveyState[sender].step;
-      await this.handleQuestions(sender, step, optionText);
+      await this.handleSurveyResponse(sender, step, optionText);
     } else {
       await this.handleMenuOption(sender, optionId);
     }
@@ -138,11 +137,11 @@ class MessageHandler {
       surveyIndex: index,
     };
 
-    await this.handleQuestions(to, 0);
+    await this.handleSurveyResponse(to, 0);
   }
 
   // Genera la siguiente pregunta
-  async handleQuestions(to, step, answer = "") {
+  async handleSurveyResponse(to, step, answer = "") {
     const userState = this.surveyState[to]; // recibe estado de la encuesta
     const survey = SurveyManager.surveys?.[userState.surveyIndex]; // recupera la seleccionada
 
@@ -307,7 +306,7 @@ class MessageHandler {
 
     try {
       await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
-      await this.handleQuestions(telefono, 0);
+      await this.handleSurveyResponse(telefono, 0);
 
       await batchUpdateSheetCells([
         { cell: `'A enviar'!C${fila}`, value: "ENVIADO ✅" },

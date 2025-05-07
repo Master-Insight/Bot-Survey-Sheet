@@ -81,7 +81,7 @@ class PendingManager {
 
       // Manejar primera pregunta
       if (messageHandler) {
-        await messageHandler.handleQuestions(telefono, 0);
+        await messageHandler.handleSurveyResponse(telefono, 0);
       }
 
       // Actualizar estado en Sheets

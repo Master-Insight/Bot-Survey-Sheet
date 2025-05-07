@@ -99,7 +99,7 @@ class SurveyManager {
     console.log("to: ", to);
     console.log(text);
 
-    await messageHandler.handleQuestions(to, 0);
+    await messageHandler.handleSurveyResponse(to, 0);
     return true;
   }
 
