@@ -7,7 +7,7 @@ class MessageHandler {
   static surveys = null
 
   constructor() {
-    this.survey1State = {}; // Guarda paso y respuestas por usuario
+    this.surveyState = {}; // Guarda paso y respuestas por usuario
     this.init(); // Carga encuestas al arrancar
     this.pendientes = [] // ! ELIMINAR
   }
@@ -26,7 +26,7 @@ class MessageHandler {
     }
   }
 
-  // * Lógica principal de entrada de mensajes
+  // * LOGICA PRINCIPAL de entrada de mensajes
   async handleIncomingMessage(message, senderInfo) {
 
     const sender = message.from;
@@ -45,15 +45,15 @@ class MessageHandler {
   // Handler: Texto plano
   async handleTextMessage(sender, messageText, originalMessage) {
 
-    // 🔍 Revisa Lanzadores
+    // 🔍 Revisa Lanzadores // ! ME QUEDE ACA - ME QUEDE ACA - ME QUEDE ACA
     if (await SurveyManager.checkSurveyTrigger(messageText, sender, this)) { return; };
 
     // Saludo inicial
     if (this.isGreeting(messageText, sender)) { await this.handleGreeting(sender, originalMessage.id); return; }
 
     // Está respondiendo la encuesta
-    if (this.survey1State[sender]) {
-      this.handleQuestions(sender, this.survey1State[sender].step, messageText)
+    if (this.surveyState[sender]) {
+      this.handleQuestions(sender, this.surveyState[sender].step, messageText)
 
     } else if (messageText === "test") {
       await service.sendMessage(sender, "✅ Test");
@@ -79,6 +79,21 @@ class MessageHandler {
     }
   }
 
+  // Handler: Acciones Interactivas (menu)
+  async handleInteractiveMessage(sender, message) {
+    const optionId = message?.interactive?.button_reply?.id;
+    const optionText = message?.interactive?.button_reply?.title;
+
+    if (this.surveyState[sender]) {
+      const step = this.surveyState[sender].step;
+      await this.handleQuestions(sender, step, optionText);
+    } else {
+      await this.handleMenuOption(sender, optionId);
+    }
+
+    await service.markAsRead(message.id);
+  }
+
   // * Auxiliares: Flujo
 
   // Determina si el mensaje es un saludo inicial
@@ -88,7 +103,7 @@ class MessageHandler {
     const istrue = greetings.includes(message);
 
     // Elimina estado actual si el usuario envía un saludo
-    if (istrue) { delete this.survey1State[to]; }
+    if (istrue) { delete this.surveyState[to]; }
 
     return istrue;
   }
@@ -100,42 +115,24 @@ class MessageHandler {
     if (messageId) await service.markAsRead(messageId);
   }
 
-
-
   // ? ******************************************************
   // ? ------------------------------------------------------
   // ? ******************************************************
 
-
-  // Handler: Acciones Interactivas (menu)
-  async handleInteractiveMessage(sender, message) {
-    const optionId = message?.interactive?.button_reply?.id;
-    const optionText = message?.interactive?.button_reply?.title;
-
-    if (this.survey1State[sender]) {
-      const step = this.survey1State[sender].step;
-      await this.handleQuestions(sender, step, optionText);
-    } else {
-      await this.handleMenuOption(sender, optionId);
-    }
-
-    await service.markAsRead(message.id);
-  }
-
-  // * MENU
+  // * MENU Y FLUJO ENCUESTA
 
   // Lógica según opción de menú
   async handleMenuOption(to, optionId) {
     const index = parseInt(optionId.replace('survey_', '')); // ontengo el index de las opciones
 
-    const selectedSurvey = MessageHandler.surveys?.[index];
+    const selectedSurvey = SurveyManager.surveys?.[index];
 
     if (!selectedSurvey) {
       await service.sendMessage(to, "⚠️ Encuesta no encontrada.");
       return;
     }
 
-    this.survey1State[to] = {
+    this.surveyState[to] = {
       step: 0,
       answers: [],
       surveyIndex: index,
@@ -146,8 +143,8 @@ class MessageHandler {
 
   // Genera la siguiente pregunta
   async handleQuestions(to, step, answer = "") {
-    const userState = this.survey1State[to]; // recibe estado de la encuesta
-    const survey = MessageHandler.surveys?.[userState.surveyIndex]; // recupera la seleccionada
+    const userState = this.surveyState[to]; // recibe estado de la encuesta
+    const survey = SurveyManager.surveys?.[userState.surveyIndex]; // recupera la seleccionada
 
     if (!survey) return;
 
@@ -161,7 +158,7 @@ class MessageHandler {
     // Si no hay más preguntas, se terminó la encuesta
     if (!question) {
       await this.handleSurveyEnd(to, userState.answers, survey.title);
-      delete this.survey1State[to];
+      delete this.surveyState[to];
       return;
     }
 
@@ -182,17 +179,22 @@ class MessageHandler {
 
   // Acción al terminar la encuesta
   async handleSurveyEnd(to, answers, title) {
-    const resumen = answers.map((res, i) => `• ${MessageHandler.surveys.find(s => s.title === title).questions[i]}: ${res}`).join("\n");
+    const resumen = answers.map((res, i) => `• ${SurveyManager.surveys.find(s => s.title === title).questions[i]}: ${res}`).join("\n");
     await service.sendMessage(to, `✅ Encuesta "${title}" completada:\n\n${resumen}`);
+    const now = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
 
     try {
-      await addToSheet([to, title, ...answers], 'answers');
+      await addToSheet([to, now, title, ...answers], 'answers');
       await service.sendMessage(to, "📄 Tus respuestas fueron registradas.");
     } catch (error) {
       console.error("❌ Error al guardar encuesta:", error);
       await service.sendMessage(to, "⚠️ Hubo un problema al guardar tus respuestas.");
     }
   }
+
+  // ? ******************************************************
+  // ? ------------------------------------------------------
+  // ? ******************************************************
 
   // * Auxiliares: Carga de datos
 
@@ -205,8 +207,6 @@ class MessageHandler {
       console.error('❌ Error al recargar encuestas:', error);
     }
   }
-
-
 
   // * Auxiliares: Tareas Extras
 
@@ -298,7 +298,7 @@ class MessageHandler {
       return { success: false, telefono, error: "Encuesta no encontrada" };
     }
 
-    this.survey1State[telefono] = {
+    this.surveyState[telefono] = {
       step: 0,
       answers: [],
       surveyIndex: matchedIndex,

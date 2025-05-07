@@ -96,6 +96,9 @@ class SurveyManager {
 
     await service.markAsRead(text.id)
 
+    console.log("to: ", to);
+    console.log(text);
+
     await messageHandler.handleQuestions(to, 0);
     return true;
   }
@@ -114,6 +117,8 @@ class SurveyManager {
 
     await service.sendInteractiveButtons(to, "📋 Elige una Encuesta", buttons);
   }
+
+
 }
 
 export default SurveyManager;

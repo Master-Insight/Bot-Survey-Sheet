@@ -5,35 +5,7 @@ import service from "./service.js";
 class MessageHandler {
   constructor() {
     this.surveyState = {}; // Estado de encuestas por usuario
-    this.init();
   }
-
-  // async init() {
-  //   try {
-  //     await SurveyManager.loadSurveys();
-  //   } catch (error) {
-  //     console.error('❌ Error al inicializar encuestas:', error);
-  //   }
-  // }
-
-  // async handleIncomingMessage(message, senderInfo) {
-  //   const sender = message.from;
-  //   const incomingMessage = message?.text?.body?.toLowerCase()?.trim();
-
-  //   if (!sender || !message) return;
-
-  //   try {
-  //     if (message?.type === 'text') {
-  //       await this.handleTextMessage(sender, incomingMessage, message);
-  //     } else if (message?.type === 'interactive') {
-  //       await this.handleInteractiveMessage(sender, message);
-  //     }
-  //   } catch (error) {
-  //     console.error(`❌ Error procesando mensaje de ${sender}:`, error);
-  //     await service.sendMessage(sender, "⚠️ Ocurrió un error al procesar tu mensaje");
-  //   }
-  // }
-
 
   /* ! ACA ESTOY */
   async handleTextMessage(sender, messageText, originalMessage) {
@@ -42,10 +14,10 @@ class MessageHandler {
       return;
     }
 
-    if (this.isGreeting(messageText, sender)) {
-      await this.handleGreeting(sender, originalMessage.id);
-      return;
-    }
+    // if (this.isGreeting(messageText, sender)) {
+    //   await this.handleGreeting(sender, originalMessage.id);
+    //   return;
+    // }
 
     if (this.surveyState[sender]) {
       await this.handleSurveyResponse(sender, messageText);
@@ -63,12 +35,6 @@ class MessageHandler {
     if (handler) {
       await handler();
     }
-  }
-
-  async handleGreeting(to, messageId) {
-    await service.sendMessage(to, "👋 ¡Bienvenido!");
-    await SurveyManager.sendSurveyMenu(to, this);
-    if (messageId) await service.markAsRead(messageId);
   }
 
   // ... (otros métodos como handleQuestions, handleSurveyEnd, etc. se mantienen similares)
