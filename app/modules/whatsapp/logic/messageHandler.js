@@ -9,7 +9,6 @@ class MessageHandler {
   constructor() {
     this.surveyState = {}; // Guarda paso y respuestas por usuario
     this.init(); // Carga encuestas al arrancar
-    this.pendientes = [] // ! ELIMINAR
   }
 
   // * METODO INICIAL
@@ -56,29 +55,21 @@ class MessageHandler {
 
     // Comandos administrativos
     const commandHandlers = {
-      "test": () => this.handleTestCommand(sender, originalMessage.id),
-      "/recarga": () => SurveyManager.reloadSurveys(sender, originalMessage.id),
-      // Los comandos de pendientes se moverán al PendingManager
+      "test": () => this.handleTestCommand(sender),
+      "/recarga": () => SurveyManager.reloadSurveys(sender),
+      "/cargar pendientes": () => PendingManager.loadPendingSurveys(sender),
+      "/enviar siguiente": () => PendingManager.sendNextPendingSurvey(sender, null, this),
+      "/enviar múltiples": () => {
+        const partes = messageText.split(" ");
+        const cantidad = parseInt(partes[2]) || 5;
+        return PendingManager.sendMultiplePendingSurveys(sender, cantidad, null, this);
+      }
 
     };
 
     const handler = commandHandlers[messageText];
     if (handler) {
       await handler();
-    }
-
-    if (messageText === "/cargar pendientes") {
-      await this.getPendingMessages(sender);
-      await service.markAsRead(originalMessage.id);
-
-    } else if (messageText === "/enviar siguiente") {
-      await this.sendNextPendingSurvey(sender);
-      await service.markAsRead(originalMessage.id);
-
-    } else if (messageText.startsWith("/enviar múltiples")) {
-      const partes = messageText.split(" ");
-      const cantidad = parseInt(partes[2]) || 5; // Default: 5 si no se especifica bien
-      await this.sendMultiplePendingSurveys(sender, cantidad);
       await service.markAsRead(originalMessage.id);
     }
   }
@@ -203,130 +194,8 @@ class MessageHandler {
   // Testeo de comandos
   async handleTestCommand(to, messageId) {
     await service.sendMessage(to, "✅ Test");
-    await service.markAsRead(messageId);
   }
 
-  // ? ******************************************************
-  // ? ------------------------------------------------------
-  // ? ******************************************************
-
-  // * Auxiliares: Tareas Extras
-
-  // Obtiene las filas pendientes de envío desde la hoja 'A enviar'
-  async getPendingMessages(to) {
-    const values = await getFromSheet("'A enviar'!A2:C")
-    if (!Array.isArray(values)) return;
-    // values.shift(); // Eliminar headers
-
-    const pendientes = [];
-    values.forEach((row, index) => {
-      const [telefono, encuesta, estado] = row;
-      if (!estado) {
-        pendientes.push({
-          telefono,
-          encuesta,
-          fila: index + 2 // +2 porque empezamos en A2 y queremos fila absoluta
-        });
-      }
-    });
-
-    this.pendientes = pendientes;
-
-    const resumen = pendientes.map((res, i) => `• Cel: ${res.telefono} - Encuesta: ${res.encuesta}`).join("\n");
-    await service.sendMessage(to, `📃 Pendientes cargados\n${resumen}`);
-  }
-
-  // Envía la siguiente encuesta pendiente
-  async sendNextPendingSurvey(to) {
-    if (this.pendientes.length === 0) {
-      await service.sendMessage(to, "✅ No hay encuestas pendientes para enviar.");
-      return;
-    }
-
-    const pendiente = this.pendientes.shift(); // Saca la primera de la cola    
-    const resultado = await this.sendSurveyToUser(pendiente);
-
-    const msg = resultado.success
-      ? `📨 Encuesta enviada a ${resultado.telefono} ✅`
-      : `⚠️ ${resultado.error} para ${resultado.telefono}`;
-
-    await service.sendMessage(to, msg);
-
-    /* SI CLIENTE CONTESTA SE PUEDE AGREGAR ESTO - PERO OJO, si eliminan la fila es para lio
-    await batchUpdateSheetCells([
-      { cell: `'A enviar'!F${fila}`, value: "COMPLETADA ✅" }
-    ] );
-*/
-  }
-
-  // Envía múltiples encuestas pendientes (máximo definido por parámetro)
-  async sendMultiplePendingSurveys(to, cantidad = 5) {
-    if (this.pendientes.length === 0) {
-      await service.sendMessage(to, "✅ No hay encuestas pendientes para enviar.");
-      return;
-    };
-
-    const enviados = [];
-
-    for (let i = 0; i < cantidad && this.pendientes.length > 0; i++) {
-
-      const pendiente = this.pendientes.shift();
-      const resultado = await this.sendSurveyToUser(pendiente);
-
-      enviados.push(resultado)
-    }
-
-    const resumen = enviados.map(e =>
-      e.success
-        ? `✅ ${e.telefono}`
-        : `❌ ${e.telefono} - ${e.error}`
-    ).join("\n");
-    await service.sendMessage(to, `📦 Resultado de envío múltiple:\n${resumen}`);
-  }
-
-  // Envia una encuesta y devuelve valores a mostrar
-  async sendSurveyToUser({ telefono, encuesta, fila }) {
-    const matchedIndex = MessageHandler.surveys.findIndex(s =>
-      encuesta.toLowerCase().trim() === s.title.toLowerCase().trim()
-    );
-
-    const now = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
-
-    if (matchedIndex === -1) {
-      await batchUpdateSheetCells([
-        { cell: `'A enviar'!C${fila}`, value: "NO ENCONTRADA ⚠️" },
-        { cell: `'A enviar'!D${fila}`, value: now },
-      ]);
-      return { success: false, telefono, error: "Encuesta no encontrada" };
-    }
-
-    this.surveyState[telefono] = {
-      step: 0,
-      answers: [],
-      surveyIndex: matchedIndex,
-      meta: { fila },
-    };
-
-    try {
-      await service.sendMessage(telefono, `📋 Hola! Queremos invitarte a responder una encuesta: *${encuesta}*`);
-      await this.handleSurveyResponse(telefono, 0);
-
-      await batchUpdateSheetCells([
-        { cell: `'A enviar'!C${fila}`, value: "ENVIADO ✅" },
-        { cell: `'A enviar'!D${fila}`, value: now },
-        { cell: `'A enviar'!E${fila}`, value: "" },
-      ]);
-
-      return { success: true, telefono };
-    } catch (error) {
-      await batchUpdateSheetCells([
-        { cell: `'A enviar'!C${fila}`, value: "ERROR ❌" },
-        { cell: `'A enviar'!D${fila}`, value: now },
-        { cell: `'A enviar'!E${fila}`, value: error.toString().substring(0, 100) },
-      ]);
-      return { success: false, telefono, error: error.toString() };
-    }
-  }
 }
 
 export default new MessageHandler();
