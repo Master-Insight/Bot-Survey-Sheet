@@ -12,7 +12,7 @@ router
 
     const surveys = config.map(rgln => rgln[0])
 
-    res.renderPage("index", "Home", { surveys })
+    res.renderPage("index", "Bot Whatsapp InsightDev", { surveys })
   })
   .get("/politica", (req, res) => {
     res.renderPage("politica", "Politica", {})

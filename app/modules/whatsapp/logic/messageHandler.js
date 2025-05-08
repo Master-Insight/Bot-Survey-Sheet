@@ -3,9 +3,6 @@ import SurveyManager from "./managers/SurveyManager.js";
 import service from "./service.js";
 
 class MessageHandler {
-  // Variable estática para evitar recargar preguntas por cada instancia
-  static surveys = null
-
   constructor() {
     this.surveyState = {}; // Guarda paso y respuestas por usuario
     this.init(); // Carga encuestas al arrancar
@@ -30,7 +27,6 @@ class MessageHandler {
 
     const sender = message.from;
     const incomingMessage = message?.text?.body?.toLowerCase()?.trim(); // limpieza
-    console.log(incomingMessage);
 
     if (!sender || !message) return; // verificación
 
