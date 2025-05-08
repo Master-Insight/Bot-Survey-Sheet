@@ -87,12 +87,13 @@ class SurveyManager {
 
   // Verifica si es un "Lanzador" de encuestas
   static async checkSurveyTrigger(text, messageId, to, messageHandler) {
-    if (!this.surveys.length) return false;
+
+    if (!this.surveys.length) return false; // SI no hay encuestas
 
     const survey = this.getSurveyByTitle(text);
+    if (!survey) return false; // SI el TEXT no es el titulo de una encuesta escapa
 
-    if (!survey) return false;
-
+    // Si el TEXT si es un titulo - cancela encuestas previas y lanza la nueva encuesta
     messageHandler.surveyState[to] = {
       step: 0,
       answers: [],
