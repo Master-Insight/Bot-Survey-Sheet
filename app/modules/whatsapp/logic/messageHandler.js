@@ -1,4 +1,4 @@
-import { addToSheet, batchUpdateSheetCells, getFromSheet, updateSheetCell } from "../../googleapis/logic/googleSheetsService.js";
+import { addToSheet } from "../../googleapis/logic/googleSheetsService.js";
 import SurveyManager from "./managers/SurveyManager.js";
 import service from "./service.js";
 
@@ -111,10 +111,8 @@ class MessageHandler {
   }
 
   // ? ******************************************************
-  // ? ------------------------------------------------------
+  // * MENU Y FLUJO ENCUESTA --------------------------------
   // ? ******************************************************
-
-  // * MENU Y FLUJO ENCUESTA
 
   // Lógica según opción de menú
   async handleMenuOption(to, optionId) {
@@ -174,21 +172,36 @@ class MessageHandler {
 
   // Acción al terminar la encuesta
   async handleSurveyEnd(to, answers, title) {
-    const resumen = answers.map((res, i) => `• ${SurveyManager.surveys.find(s => s.title === title).questions[i]}: ${res}`).join("\n");
+    const survey = SurveyManager.surveys.find(s => s.title === title);
+    if (!survey) return;
+
+    const resumen = answers.map((res, i) =>
+      `• ${survey.questions[i]}: ${res}`
+    ).join("\n");
+
     await service.sendMessage(to, `✅ Encuesta "${title}" completada:\n\n${resumen}`);
+
     const now = new Date().toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires" });
 
     try {
+      // Guardar respuestas
       await addToSheet([to, now, title, ...answers], 'answers');
       await service.sendMessage(to, "📄 Tus respuestas fueron registradas.");
+
     } catch (error) {
       console.error("❌ Error al guardar encuesta:", error);
-      await service.sendMessage(to, "⚠️ Hubo un problema al guardar tus respuestas.");
+      await service.sendMessage(
+        to,
+        "⚠️ Hubo un problema al guardar tus respuestas. Por favor inténtalo más tarde."
+      );
+
+    } finally {
+      delete this.surveyState[to];
     }
   }
 
   // ? ******************************************************
-  // ? ------------------------------------------------------
+  // * COMANDOS  --------------------------------------------
   // ? ******************************************************
 
   // Testeo de comandos
