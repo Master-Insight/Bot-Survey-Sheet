@@ -57,10 +57,12 @@ class SurveyManager {
     try {
       await this.loadSurveys();
       await service.sendMessage(to, "🔁 Encuestas recargadas correctamente");
-      if (messageId) await service.markAsRead(messageId);
+
     } catch (error) {
       console.error("❌ Error al recargar encuestas:", error);
       await service.sendMessage(to, "⚠️ Error al recargar encuestas");
+
+    } finally {
       if (messageId) await service.markAsRead(messageId);
     }
   }
