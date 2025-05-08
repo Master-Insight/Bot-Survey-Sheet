@@ -72,19 +72,24 @@ class SurveyManager {
 
   // Obtener encuesta según titulo // ! FALTA
   static getSurveyByTitle(title) {
+    if (!this.surveys.length) return null;
+
+    const normalizedTitle = title.toLowerCase().trim();
+
     return this.surveys.find(s =>
-      s.title.toLowerCase().trim() === title.toLowerCase().trim()
+      s.title.toLowerCase().trim() === normalizedTitle ||
+      s.title.toLowerCase().trim().includes(normalizedTitle) ||
+      normalizedTitle.includes(s.title.toLowerCase().trim())
     ) || null;
   }
 
   // * VERIFICADORES 
 
-  // Verifica si es un "Lanzador" de encuestas  // ! FALTA
+  // Verifica si es un "Lanzador" de encuestas
   static async checkSurveyTrigger(text, messageId, to, messageHandler) {
     if (!this.surveys.length) return false;
 
-    const normalizedText = text.toLowerCase().trim();
-    const survey = this.getSurveyByTitle(normalizedText);
+    const survey = this.getSurveyByTitle(text);
 
     if (!survey) return false;
 
@@ -95,9 +100,6 @@ class SurveyManager {
     };
 
     await service.markAsRead(messageId)
-
-    console.log("to: ", to);
-    console.log(text);
 
     await messageHandler.handleSurveyResponse(to, 0);
     return true;
