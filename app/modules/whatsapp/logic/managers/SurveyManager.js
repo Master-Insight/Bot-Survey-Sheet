@@ -94,6 +94,8 @@ class SurveyManager {
     if (!survey) return false; // SI el TEXT no es el titulo de una encuesta escapa
 
     // Si el TEXT si es un titulo - cancela encuestas previas y lanza la nueva encuesta
+    delete messageHandler.surveyState[to];
+
     messageHandler.surveyState[to] = {
       step: 0,
       answers: [],
