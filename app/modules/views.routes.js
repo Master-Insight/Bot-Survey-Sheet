@@ -2,7 +2,7 @@ import { Router } from "express";
 import { getFromSheet } from "./googleapis/logic/googleSheetsService.js";
 import configEnv from "../config/env.js";
 
-const USER_ADMIN_PASS{ } = configEnv
+const { USER_ADMIN_PASS } = configEnv
 
 const router = Router();
 
@@ -17,9 +17,9 @@ const checkAuth = (req, res, next) => {
 // Ruta de login
 router
   .get("/login", (req, res) => {
-    if (req.session.admin) {
-      return res.redirect('/admin');
-    }
+    // if (req.session.admin) {
+    //   return res.redirect('/admin');
+    // }
     res.renderPage("login", "Acceso Admin", {});
   })
   .post("/login", (req, res) => {
@@ -96,7 +96,7 @@ router
     const surveys = Array.isArray(config) ? config.slice(1).map(rgln => rgln[0]) : [];
     res.renderPage("index", "Bot Whatsapp InsightDev", {
       surveys,
-      admin: req.session.admin
+      // admin: req.session.admin
     });
   })
   .get("/politica", (req, res) => {
