@@ -1,9 +1,13 @@
 import { Router } from "express";
 import whatsappRouter from "./whatsapp/api/routes.js"
+import authRouter from "./auth.routes.js";
+import adminRouter from "./admin.routes.js";
 import viewsRouter from "./views.routes.js";
 
 const router = Router()
 
+router.use("/", authRouter);
+router.use("/", adminRouter);
 router.use("/", viewsRouter);
 
 // http://localhost:8080/
