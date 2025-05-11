@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { getFromSheet } from "./googleapis/logic/googleSheetsService.js";
-import configEnv from "../config/env.js";
+import { getFromSheet } from "../googleapis/logic/googleSheetsService.js";
+import configEnv from "../../config/env.js";
 
 const router = Router();
 const { CONFIG_SHEET } = configEnv

@@ -1,19 +1,31 @@
 <div class="px-4 py-5 sm:p-6">
   <h3 class="text-lg font-medium leading-6 text-gray-900">Acceso Administrativo</h3>
 
+  {{#if error}}
+    <div
+      class="mt-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-md"
+    >
+      {{error}}
+    </div>
+  {{/if}}
+
   <form action="/login" method="POST" class="mt-5">
     <div class="shadow sm:rounded-md sm:overflow-hidden">
       <div class="px-4 py-5 bg-white space-y-6 sm:p-6">
         <div class="grid grid-cols-3 gap-6">
           <div class="col-span-3">
-            <label for="name" class="block text-sm font-medium text-gray-700">
+            <label
+              for="username"
+              class="block text-sm font-medium text-gray-700"
+            >
               Nombre:
             </label>
             <input
-              type="name"
-              name="name"
-              id="name"
+              type="text"
+              name="username"
+              id="username"
               required
+              value="{{username}}"
               class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
             />
             <label
