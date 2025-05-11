@@ -57,10 +57,12 @@ class SurveyManager {
     try {
       await this.loadSurveys();
       await service.sendMessage(to, "🔁 Encuestas recargadas correctamente");
-      if (messageId) await service.markAsRead(messageId);
+
     } catch (error) {
       console.error("❌ Error al recargar encuestas:", error);
       await service.sendMessage(to, "⚠️ Error al recargar encuestas");
+
+    } finally {
       if (messageId) await service.markAsRead(messageId);
     }
   }
@@ -87,11 +89,14 @@ class SurveyManager {
 
   // Verifica si es un "Lanzador" de encuestas
   static async checkSurveyTrigger(text, messageId, to, messageHandler) {
-    if (!this.surveys.length) return false;
+
+    if (!this.surveys.length) return false; // SI no hay encuestas
 
     const survey = this.getSurveyByTitle(text);
+    if (!survey) return false; // SI el TEXT no es el titulo de una encuesta escapa
 
-    if (!survey) return false;
+    // Si el TEXT si es un titulo - cancela encuestas previas y lanza la nueva encuesta
+    delete messageHandler.surveyState[to];
 
     messageHandler.surveyState[to] = {
       step: 0,

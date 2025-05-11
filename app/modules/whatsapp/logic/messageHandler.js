@@ -23,6 +23,8 @@ class MessageHandler {
   }
 
   // * LOGICA PRINCIPAL de entrada de mensajes
+  // ? El cliente SALUDA, elije una opción de MENU o tipea un COMANDO
+
   async handleIncomingMessage(message, senderInfo) {
 
     const sender = message.from;
@@ -39,14 +41,15 @@ class MessageHandler {
 
   // Handler: Texto plano
   async handleTextMessage(sender, messageText, originalMessage) {
+    const messageId = originalMessage.id
 
-    // 🔍 Revisa Lanzadores
-    if (await SurveyManager.checkSurveyTrigger(messageText, originalMessage.id, sender, this)) { return; };
+    // 🔍 Revisa Lanzadores (comando especiales)
+    if (await SurveyManager.checkSurveyTrigger(messageText, messageId, sender, this)) { return; };
 
-    // Saludo inicial
-    if (this.isGreeting(messageText, sender)) { await this.handleGreeting(sender, originalMessage.id); return; }
+    // Saludo inicial - Si es elimina encuesta inicializadas
+    if (this.isGreeting(messageText, sender)) { await this.handleGreeting(sender, messageId); return; }
 
-    // Está respondiendo la encuesta
+    // Tiene encuesta inicializada
     if (this.surveyState[sender]) { this.handleSurveyResponse(sender, this.surveyState[sender].step, messageText); return; }
 
     // Comandos administrativos
