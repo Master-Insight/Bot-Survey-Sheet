@@ -1,0 +1,52 @@
+<div class="px-4 py-5 sm:p-6">
+  <div class="mb-6">
+    <h3 class="text-lg font-medium leading-6 text-gray-900">Panel de
+      Administración</h3>
+    <p class="mt-1 text-sm text-gray-500">Gestión de encuestas y configuración</p>
+  </div>
+
+  <div class="space-y-4">
+    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+      <h4 class="font-medium text-blue-800">Encuestas Disponibles</h4>
+      <ul class="mt-2 space-y-2">
+        {{#each surveys}}
+          <li
+            class="flex justify-between items-center bg-white p-2 rounded border"
+          >
+            <span class="text-sm">{{this}}</span>
+            <div class="flex space-x-2">
+              <button
+                class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200"
+              >
+                Editar
+              </button>
+              <button
+                class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200"
+              >
+                Eliminar
+              </button>
+            </div>
+          </li>
+        {{/each}}
+      </ul>
+    </div>
+
+    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <h4 class="font-medium text-gray-800">Acciones</h4>
+      <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <a
+          href="/admin/new-survey"
+          class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+        >
+          Nueva Encuesta
+        </a>
+        <a
+          href="/logout"
+          class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+        >
+          Cerrar Sesión
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

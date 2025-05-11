@@ -1,4 +1,5 @@
 import express from "express";
+import session from 'express-session';
 import handlebars from 'express-handlebars';
 import configEnv from "../config/env.js";
 import appRouter from '../modules/routes.js'
@@ -9,9 +10,9 @@ import __dirname from "../pkg/utils/dirname.js";
 const app = express();
 
 // App Configurations --------------------------------
-const port = configEnv.PORT || 8080;
-app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
+const port = configEnv.PORT || 3000;
+app.use(express.urlencoded({ extended: true }))
+app.use(express.json())
 app.use(express.static(__dirname + '/public'));
 
 // Handlebars --------------------------------
@@ -24,6 +25,14 @@ const hbs = handlebars.create({
 app.engine('hbs', hbs.engine);
 app.set('view engine', 'hbs');
 app.set('views', __dirname + '/pages');
+
+// Sessiones-------------------------
+app.use(session({
+  secret: configEnv.SECRET_COOKIE, // Cambia esto por una cadena secreta
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false } // Cambia a true si usas HTTPS
+}));
 
 // App Middleware --------------------------------
 app.use(handleResponses)

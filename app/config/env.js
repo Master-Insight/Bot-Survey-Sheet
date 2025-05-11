@@ -5,6 +5,7 @@ dotenv.config()
 const configEnv = {
   PORT: process.env.PORT,
   USER_ADMIN_PASS: process.env.USER_ADMIN_PASS, // Contraseña administrativa
+  SECRET_COOKIE: process.env.SECRET_COOKIE, // clave cookie
 
   // Whatsapp
   BASE_WP_URL: process.env.BASE_WP_URL, // Base URL de la API
