@@ -9,17 +9,15 @@ class MessageHandler {
   }
 
   // * METODO INICIAL
-  // ! LOG Inicializa la clase cargando los datos de encuestas desde Google Sheets
   async init() {
     try {
       await SurveyManager.loadSurveys();
     } catch (error) {
       console.error('❌ Error al inicializar encuestas:', error);
     }
-    // ! GUIA !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    finally {
-      console.log("surveys: ", SurveyManager.surveys);
-    }
+    // finally {
+    //   console.log("surveys: ", SurveyManager.surveys);
+    // }
   }
 
   // * LOGICA PRINCIPAL de entrada de mensajes
