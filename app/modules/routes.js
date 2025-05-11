@@ -1,8 +1,8 @@
 import { Router } from "express";
 import whatsappRouter from "./whatsapp/api/routes.js"
-import authRouter from "./auth.routes.js";
-import adminRouter from "./admin.routes.js";
-import viewsRouter from "./views.routes.js";
+import authRouter from "./routes/auth.routes.js";
+import adminRouter from "./routes/admin.routes.js";
+import viewsRouter from "./routes/views.routes.js";
 
 const router = Router()
 
