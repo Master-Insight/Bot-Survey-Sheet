@@ -30,8 +30,13 @@ app.set('views', __dirname + '/pages');
 app.use(session({
   secret: configEnv.SECRET_COOKIE, // Cambia esto por una cadena secreta
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false } // Cambia a true si usas HTTPS
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 4, // 4 horas de sesión
+    secure: configEnv.NODE_ENV === 'production', // HTTPS en producción
+    httpOnly: true // Protección contra XSS
+  },
+  // No necesitamos store explícito si no nos importa perder sesiones al reiniciar
 }));
 
 // App Middleware --------------------------------
