@@ -6,6 +6,11 @@ import viewsRouter from "./views.routes.js";
 
 const router = Router()
 
+// Log de session
+router.use((req, res, next) => {
+  console.log('Session data:', req.session);
+  next();
+});
 router.use("/", authRouter);
 router.use("/", adminRouter);
 router.use("/", viewsRouter);
