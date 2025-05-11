@@ -6,6 +6,7 @@ const configEnv = {
   PORT: process.env.PORT,
   USER_ADMIN_PASS: process.env.USER_ADMIN_PASS, // Contraseña administrativa
   SECRET_COOKIE: process.env.SECRET_COOKIE, // clave cookie
+  NODE_ENV: process.env.NODE_ENV,  // Estado de la app (develop o production)
 
   // Whatsapp
   BASE_WP_URL: process.env.BASE_WP_URL, // Base URL de la API
