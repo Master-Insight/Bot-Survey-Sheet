@@ -6,16 +6,11 @@ import appRouter from '../modules/routes.js'
 import handleResponses from "../pkg/middleware/handleResponses.js";
 import __dirname from "../pkg/utils/dirname.js";
 
-// Validación ENV requeridos ------------------------------
-if (!configEnv.SECRET_COOKIE) {
-  throw new Error('SECRET_COOKIE no está definido en las variables de entorno');
-}
-
 // App initialization ------------------------------
 const app = express();
 
 // App Configurations --------------------------------
-const port = configEnv.PORT || 3000;
+const port = configEnv.PORT;
 
 // Configuración de seguridad básica
 app.disable('x-powered-by'); // Ocultar información del servidor
