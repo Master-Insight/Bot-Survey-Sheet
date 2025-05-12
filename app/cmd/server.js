@@ -31,6 +31,8 @@ const hbs = handlebars.create({
   helpers: {
     encodeURIComponent: (str) => encodeURIComponent(str),
     // Puedes agregar más helpers aquí según necesites
+    eq: (a, b) => a === b, // {{#eq currentPath '/admin'}} -- dentro de codigo hbs
+    json: (context) => JSON.stringify(context)
   },
   runtimeOptions: {
     allowProtoPropertiesByDefault: true,
@@ -58,6 +60,12 @@ const sessionConfig = {
 app.use(session(sessionConfig));
 
 // App Middleware --------------------------------
+app.use((req, res, next) => {
+  // Pasar el estado de autenticación a todas las vistas
+  res.locals.admin = req.session.admin || false; // disponibilisa admin como variable
+  res.locals.currentPath = req.path; // disponibilisa currentPath como variable
+  next();
+});
 app.use(handleResponses)
 
 // App Routes --------------------------------
