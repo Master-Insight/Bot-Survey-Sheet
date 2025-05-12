@@ -18,6 +18,21 @@ router.use("/", viewsRouter);
 // http://localhost:8080/
 router.use('/webhook/', whatsappRouter)
 
-router.all('*', (req, res, next) => { res.send(`No se encuentra la url: ${req.originalUrl} en este servidor`); });
+// Manejo de errores 404
+router.use((req, res) => {
+  res.status(404).render('404', {
+    title: 'Página no encontrada',
+    admin: req.session.admin || false
+  });
+});
+
+// Manejo de errores global
+router.use((err, req, res, next) => {
+  console.error('Error:', err.stack);
+  res.status(500).render('500', {
+    title: 'Error del servidor',
+    admin: req.session.admin || false
+  });
+});
 
 export default router
