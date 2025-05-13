@@ -11,12 +11,15 @@ router.use((req, res, next) => {
   console.log('Session data:', req.session);
   next();
 });
-router.use("/", authRouter);
-router.use("/", adminRouter);
-router.use("/", viewsRouter);
 
-// http://localhost:8080/
-router.use('/webhook/', whatsappRouter)
+router
+  // Rutas Publicas
+  .use("/", viewsRouter)
+  .use('/webhook/', whatsappRouter)
+  // Rutas para Autenticación 
+  .use("/", authRouter)
+  // Rutas Privadas
+  .use("/", adminRouter)
 
 // Manejo de errores 404
 router.use((req, res) => {
