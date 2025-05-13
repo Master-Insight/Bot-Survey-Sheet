@@ -58,6 +58,7 @@
 
     <!-- Enviar Múltiples -->
     <form action="/admin/command" method="POST" class="command-form" id="multiplesForm">
+      <p>Enviar multiples encuestas</p>
       <input type="hidden" name="command" value="/enviar múltiples">
       <div class="flex">
         <input type="number" name="quantity" min="1" max="20" value="5"
@@ -89,10 +90,10 @@
           <span class="text-sm font-medium">{{this}}</span>
         </div>
         <div class="flex space-x-2">
-          <button class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200">
+          {{!-- <button class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200">
             Editar
-          </button>
-          <button class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">
+          </button> --}}
+          <button class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200 buttonDeleteSurvey">
             Eliminar
           </button>
         </div>
@@ -102,6 +103,9 @@
         No hay encuestas disponibles
       </li>
       {{/each}}
+      <p class="italic text-center">Se recomienda la edición por planilla, ya que la recarga cancela estos cambios, sin
+        embargo es util para una
+        acción rápida</p>
     </ul>
   </div>
 
@@ -125,6 +129,8 @@
     const resultsContainer = document.getElementById('commandResults');
     const resultContent = document.getElementById('resultContent');
     const feedbackElement = document.getElementById('operationFeedback');
+
+    const buttonsDeleteSurvey = document.getElementsByClassName('buttonDeleteSurvey')
 
     forms.forEach(form => {
       form.addEventListener('submit', async (e) => {
@@ -163,5 +169,10 @@
         }
       });
     });
+
+    // hacer funcion que detecte cada boton "buttonsDeleteSurvey" y me haga el log del "Nombre de la encuesta al hacerle clic"
+
   });
+
+
 </script>

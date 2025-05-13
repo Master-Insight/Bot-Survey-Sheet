@@ -8,6 +8,7 @@ const { CONFIG_SHEET } = configEnv
 
 router.use(authenticate); // Todas las rutas aquí requieren autenticación
 
+// Ruta para el panel admin
 router.get('/admin', async (req, res) => {
   try {
     const config = await getFromSheet(CONFIG_SHEET);
@@ -25,20 +26,34 @@ router.get('/admin', async (req, res) => {
   }
 });
 
-router.post('/execute-command', async (req, res) => {
+// Ruta para ejecutar comandos
+router.post('/admin/execute-command', async (req, res) => {
   try {
     const { command } = req.body;
 
     // Aquí simularías el envío del comando al MessageHandler
     // Esto es un ejemplo - necesitarás adaptarlo a tu arquitectura
-    // const result = await simulateCommandExecution(command);
+    // Usamos un número especial para identificar que viene del panel admin
+    const adminPhone = 'admin_panel';
+    const mockMessage = {
+      id: 'admin_panel_command',
+      from: adminPhone,
+      text: { body: command },
+      type: 'text'
+    };
+
+    // await MessageHandler.handleIncomingMessage(mockMessage, {});
+    const result = await simulateCommandExecution(command);
+
 
     res.json({
       success: true,
       command,
-      result
+      result,
+      message: "Comando ejecutado correctamente"
     });
   } catch (error) {
+    console.error('Error ejecutando comando:', error);
     res.status(500).json({
       success: false,
       error: error.message
