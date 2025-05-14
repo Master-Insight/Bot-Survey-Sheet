@@ -1,0 +1,178 @@
+<div class="px-4 py-5 sm:p-6">
+  <!-- Encabezado -->
+  <div class="mb-6">
+    <h3 class="text-lg font-medium leading-6 text-gray-900">Panel de Administración</h3>
+    <p class="mt-1 text-sm text-gray-500">Gestión de encuestas y configuración</p>
+    <p class="mt-1 text-sm text-gray-500">
+      Bienvenido, {{session.username}} |
+      <a href="/logout" class="text-indigo-600 hover:text-indigo-800">Cerrar sesión</a>
+    </p>
+  </div>
+
+  <!-- Sección de Comandos Rápidos -->
+  <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100 mb-6">
+    <h4 class="font-medium text-yellow-800 mb-3">Comandos del Bot</h4>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      <!-- Recargar Encuestas -->
+      <form action="/private/command" method="POST" class="command-form">
+        <input type="hidden" name="command" value="/recarga">
+        <button type="submit"
+          class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd"
+              d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+              clip-rule="evenodd" />
+          </svg>
+          Recargar Encuestas
+        </button>
+      </form>
+
+      <!-- Cargar Pendientes -->
+      <form action="/private/command" method="POST" class="command-form">
+        <input type="hidden" name="command" value="/cargar pendientes">
+        <button type="submit"
+          class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd"
+              d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+              clip-rule="evenodd" />
+          </svg>
+          Cargar Pendientes
+        </button>
+      </form>
+
+      <!-- Enviar Siguiente -->
+      <form action="/private/command" method="POST" class="command-form">
+        <input type="hidden" name="command" value="/enviar siguiente">
+        <button type="submit"
+          class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+          </svg>
+          Enviar Siguiente
+        </button>
+      </form>
+    </div>
+
+    <!-- Enviar Múltiples -->
+    <form action="/private/command" method="POST" class="command-form" id="multiplesForm">
+      <p>Enviar multiples encuestas</p>
+      <input type="hidden" name="command" value="/enviar múltiples">
+      <div class="flex">
+        <input type="number" name="quantity" min="1" max="20" value="5"
+          class="flex-1 rounded-l-md border-r-0 border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+          placeholder="Cantidad">
+        <button type="submit"
+          class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-r-md hover:bg-indigo-700 transition-colors">
+          Enviar
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Sección de Encuestas -->
+  <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
+    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+      <h4 class="font-medium text-gray-800">Encuestas Disponibles</h4>
+    </div>
+    <ul class="divide-y divide-gray-200">
+      {{#each surveys}}
+      <li class="px-4 py-4 sm:px-6 flex justify-between items-center">
+        <div class="flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-3" viewBox="0 0 20 20"
+            fill="currentColor">
+            <path fill-rule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+              clip-rule="evenodd" />
+          </svg>
+          <span class="text-sm font-medium">{{this}}</span>
+        </div>
+        <div class="flex space-x-2">
+          {{!-- <button class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200">
+            Editar
+          </button> --}}
+          <button class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200 buttonDeleteSurvey">
+            Eliminar
+          </button>
+        </div>
+      </li>
+      {{else}}
+      <li class="px-4 py-4 sm:px-6 text-center text-sm text-gray-500">
+        No hay encuestas disponibles
+      </li>
+      {{/each}}
+      <p class="italic text-center">Se recomienda la edición por planilla, ya que la recarga cancela estos cambios, sin
+        embargo es util para una
+        acción rápida</p>
+    </ul>
+  </div>
+
+  <!-- Resultados de Comandos -->
+  <div id="commandResults" class="hidden bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+    <h4 class="font-medium text-gray-800 mb-2">Resultado del Comando</h4>
+    <pre id="resultContent" class="text-sm bg-white p-3 rounded overflow-auto max-h-40"></pre>
+  </div>
+
+  <!-- Feedback de Operación -->
+  <div id="operationFeedback"
+    class="hidden fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg">
+    Comando ejecutado con éxito!
+  </div>
+</div>
+
+<!-- Script para manejar los formularios -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const forms = document.querySelectorAll('.command-form');
+    const resultsContainer = document.getElementById('commandResults');
+    const resultContent = document.getElementById('resultContent');
+    const feedbackElement = document.getElementById('operationFeedback');
+
+    const buttonsDeleteSurvey = document.getElementsByClassName('buttonDeleteSurvey')
+
+    forms.forEach(form => {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const command = formData.get('command');
+        const quantity = formData.get('quantity') || '';
+
+        try {
+          const response = await fetch('/private/execute-command', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              command: quantity ? `${command} ${quantity}` : command
+            })
+          });
+
+          const data = await response.json();
+
+          // Mostrar resultados
+          resultContent.textContent = JSON.stringify(data, null, 2);
+          resultsContainer.classList.remove('hidden');
+
+          // Mostrar feedback
+          feedbackElement.classList.remove('hidden');
+          setTimeout(() => {
+            feedbackElement.classList.add('hidden');
+          }, 3000);
+
+        } catch (error) {
+          resultContent.textContent = `Error: ${error.message}`;
+          resultsContainer.classList.remove('hidden');
+        }
+      });
+    });
+
+    // hacer funcion que detecte cada boton "buttonsDeleteSurvey" y me haga el log del "Nombre de la encuesta al hacerle clic"
+
+  });
+
+
+</script>

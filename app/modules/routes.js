@@ -1,23 +1,41 @@
 import { Router } from "express";
 import whatsappRouter from "./whatsapp/api/routes.js"
-import authRouter from "./routes/auth.routes.js";
-import adminRouter from "./routes/admin.routes.js";
+import authRouter from "./private/api/auth.routes.js";
+import adminRouter from "./private/api/admin.routes.js";
 import viewsRouter from "./routes/views.routes.js";
 
 const router = Router()
 
 // Log de session
-router.use((req, res, next) => {
-  console.log('Session data:', req.session);
-  next();
+// router.use((req, res, next) => {
+//   console.log('Session data:', req.session);
+//   next();
+// });
+
+router
+  // Rutas Publicas
+  .use("/", viewsRouter)
+  .use('/webhook/', whatsappRouter)
+  // Rutas para Autenticación 
+  .use("/", authRouter)
+  // Rutas Privadas
+  .use("/", adminRouter)
+
+// Manejo de errores 404
+router.use((req, res) => {
+  res.status(404).render('404', {
+    title: 'Página no encontrada',
+    admin: req.session.admin || false
+  });
 });
-router.use("/", authRouter);
-router.use("/", adminRouter);
-router.use("/", viewsRouter);
 
-// http://localhost:8080/
-router.use('/webhook/', whatsappRouter)
-
-router.all('*', (req, res, next) => { res.send(`No se encuentra la url: ${req.originalUrl} en este servidor`); });
+// Manejo de errores global
+router.use((err, req, res, next) => {
+  console.error('Error:', err.stack);
+  res.status(500).render('500', {
+    title: 'Error del servidor',
+    admin: req.session.admin || false
+  });
+});
 
 export default router
