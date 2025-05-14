@@ -15,7 +15,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       <!-- Recargar Encuestas -->
-      <form action="/admin/command" method="POST" class="command-form">
+      <form action="/private/command" method="POST" class="command-form">
         <input type="hidden" name="command" value="/recarga">
         <button type="submit"
           class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors">
@@ -29,7 +29,7 @@
       </form>
 
       <!-- Cargar Pendientes -->
-      <form action="/admin/command" method="POST" class="command-form">
+      <form action="/private/command" method="POST" class="command-form">
         <input type="hidden" name="command" value="/cargar pendientes">
         <button type="submit"
           class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors">
@@ -43,7 +43,7 @@
       </form>
 
       <!-- Enviar Siguiente -->
-      <form action="/admin/command" method="POST" class="command-form">
+      <form action="/private/command" method="POST" class="command-form">
         <input type="hidden" name="command" value="/enviar siguiente">
         <button type="submit"
           class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors">
@@ -57,7 +57,7 @@
     </div>
 
     <!-- Enviar Múltiples -->
-    <form action="/admin/command" method="POST" class="command-form" id="multiplesForm">
+    <form action="/private/command" method="POST" class="command-form" id="multiplesForm">
       <p>Enviar multiples encuestas</p>
       <input type="hidden" name="command" value="/enviar múltiples">
       <div class="flex">
@@ -141,7 +141,7 @@
         const quantity = formData.get('quantity') || '';
 
         try {
-          const response = await fetch('/admin/execute-command', {
+          const response = await fetch('/private/execute-command', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

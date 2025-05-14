@@ -9,13 +9,13 @@ const { CONFIG_SHEET } = configEnv
 router.use(authenticate); // Todas las rutas aquí requieren autenticación
 
 // Ruta para el panel admin
-router.get('/admin', async (req, res) => {
+router.get('/private', async (req, res) => {
   try {
     const config = await getFromSheet(CONFIG_SHEET);
     const surveys = Array.isArray(config) ? config.slice(1).map(rgln => rgln[0]) : [];
     const session = req.session
 
-    res.renderPage("admin", "Panel Admin", {
+    res.renderPage("private", "Panel Admin", {
       admin: true,
       surveys,
       session
@@ -27,7 +27,7 @@ router.get('/admin', async (req, res) => {
 });
 
 // Ruta para ejecutar comandos
-router.post('/admin/execute-command', async (req, res) => {
+router.post('/private/execute-command', async (req, res) => {
   try {
     const { command } = req.body;
 
