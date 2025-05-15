@@ -36,14 +36,14 @@ router
         );
 
         req.session.save(() => {
-          res.redirect('/admin');
+          res.redirect('/private');
         });
 
       } catch (error) {
         console.error('Error registrando acceso:', error);
         // Aunque falle el registro, permitimos el login
         req.session.save(() => {
-          res.redirect('/admin');
+          res.redirect('/private');
         });
       }
     } else {
