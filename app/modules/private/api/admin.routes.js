@@ -47,10 +47,9 @@ router.post('/private/execute-command', async (req, res) => {
 
 
     res.json({
-      success: true,
+      success: result.success,
       command,
-      result,
-      message: "Comando ejecutado correctamente"
+      message: result.message
     });
   } catch (error) {
     console.error('Error ejecutando comando:', error);

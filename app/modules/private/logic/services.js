@@ -6,12 +6,14 @@ class PrivateService {
     try {
       await SurveyManager.loadSurveys();
       return {
+        success: true,
         message: "🔁 Encuestas recargadas correctamente",
       }
     } catch (error) {
       console.log(error);
 
       return {
+        success: false,
         message: "⚠️ Error al recargar encuestas",
       }
     }
