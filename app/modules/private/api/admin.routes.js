@@ -31,14 +31,17 @@ router.get('/private', async (req, res) => {
 router.post('/private/execute-command', async (req, res) => {
   try {
     const { command } = req.body;
+    console.log(command);
 
+    // Modelo inicial
     let result = {
       success: false,
       message: "Comandos no enviados"
     }
 
+    // 
     switch (command) {
-      case "reload":
+      case "/recarga":
         result = await privateServ.reloadSurveys()
         break;
 
@@ -51,6 +54,7 @@ router.post('/private/execute-command', async (req, res) => {
       command,
       message: result.message
     });
+
   } catch (error) {
     console.error('Error ejecutando comando:', error);
     res.status(500).json({
