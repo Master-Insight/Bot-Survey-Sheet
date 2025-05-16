@@ -18,6 +18,6 @@ class PrivateService {
       }
     }
   }
-
+}
 
 export default new PrivateService()
