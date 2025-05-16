@@ -1,4 +1,4 @@
-import SurveyManager from "../../whatsapp/logic/managers/SurveyManager"
+import SurveyManager from "../../whatsapp/logic/managers/SurveyManager.js"
 
 class PrivateService {
 
