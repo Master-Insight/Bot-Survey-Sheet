@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticate } from "./auth.routes.js";
 import { getFromSheet } from "../../googleapis/logic/googleSheetsService.js";
 import configEnv from "../../../config/env.js";
+import privateServ from "../logic/services.js"
 
 const router = Router();
 const { CONFIG_SHEET } = configEnv
@@ -31,19 +32,22 @@ router.post('/private/execute-command', async (req, res) => {
   try {
     const { command } = req.body;
 
-    // Aquí simularías el envío del comando al MessageHandler
-    // Esto es un ejemplo - necesitarás adaptarlo a tu arquitectura
-    // Usamos un número especial para identificar que viene del panel admin
-    const adminPhone = 'admin_panel';
-    const mockMessage = {
-      id: 'admin_panel_command',
-      from: adminPhone,
-      text: { body: command },
-      type: 'text'
-    };
+    let result = {
+      success: false,
+      message: "Comandos no enviados"
+    }
+
+    switch (command) {
+      case "reload":
+        result = privateServ.reloadSurveys()
+        break;
+
+      default:
+        break;
+    }
 
     // await MessageHandler.handleIncomingMessage(mockMessage, {});
-    const result = await simulateCommandExecution(command);
+    result = await simulateCommandExecution(command);
 
 
     res.json({
@@ -59,19 +63,5 @@ router.post('/private/execute-command', async (req, res) => {
     });
   }
 });
-
-// Función de ejemplo para simular la ejecución de comandos
-async function simulateCommandExecution(command) {
-  // En una implementación real, aquí llamarías a los métodos de MessageHandler
-  // Por ejemplo:
-  // const phoneNumber = 'ADMIN_PANEL'; // O algún identificador especial
-  // await messageHandler.handleTextMessage(phoneNumber, command, {id: 'panel'});
-
-  return {
-    executedAt: new Date().toISOString(),
-    command,
-    status: 'processed'
-  };
-}
 
 export default router;
