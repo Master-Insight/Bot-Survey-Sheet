@@ -118,7 +118,7 @@
   <!-- Feedback de Operación -->
   <div id="operationFeedback"
     class="hidden fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-md shadow-lg">
-    Comando ejecutado con éxito!
+    Comando <span id="selectCommand"></span> ejecutado con éxito!
   </div>
 </div>
 
@@ -129,7 +129,7 @@
     const resultsContainer = document.getElementById('commandResults');
     const resultContent = document.getElementById('resultContent');
     const feedbackElement = document.getElementById('operationFeedback');
-
+    const selectCommand = document.getElementById('selectCommand');
     const buttonsDeleteSurvey = document.getElementsByClassName('buttonDeleteSurvey')
 
     forms.forEach(form => {
@@ -155,6 +155,7 @@
 
           // Mostrar resultados
           resultContent.textContent = JSON.stringify(data, null, 2);
+          selectCommand.innerText = `"${command}"`
           resultsContainer.classList.remove('hidden');
 
           // Mostrar feedback
@@ -166,6 +167,7 @@
         } catch (error) {
           resultContent.textContent = `Error: ${error.message}`;
           resultsContainer.classList.remove('hidden');
+          selectCommand.innerText = ""
         }
       });
     });
