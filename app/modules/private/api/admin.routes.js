@@ -39,16 +39,12 @@ router.post('/private/execute-command', async (req, res) => {
 
     switch (command) {
       case "reload":
-        result = privateServ.reloadSurveys()
+        result = await privateServ.reloadSurveys()
         break;
 
       default:
         break;
     }
-
-    // await MessageHandler.handleIncomingMessage(mockMessage, {});
-    result = await simulateCommandExecution(command);
-
 
     res.json({
       success: result.success,
