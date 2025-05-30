@@ -20,7 +20,7 @@ app.use(express.static(__dirname + '/public', {
   maxAge: configEnv.NODE_ENV === 'production' ? '1d' : '0' // Cache en producción
 }));
 
-// Handlebars --------------------------------
+// Motor de Plantillas --------------------------------
 const hbs = handlebars.create({
   extname: '.hbs',
   helpers: {
